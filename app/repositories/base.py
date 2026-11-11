@@ -1,4 +1,4 @@
-"""Repository abstraction: persistence-agnostic data access contract."""
+"""Interface repository, để service không cần biết dữ liệu lưu ở đâu."""
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
@@ -7,34 +7,23 @@ from uuid import UUID
 
 
 class HasId(Protocol):
-    """Structural requirement for every persisted entity."""
-
     id: UUID
 
 
 class BaseRepository[T: HasId](ABC):
-    """Generic CRUD contract implemented by concrete repositories.
-
-    Day 1 ships an in-memory implementation; Day 2 adds the SQLAlchemy
-    implementation behind the same interface so the service layer is untouched.
-    """
-
     @abstractmethod
-    async def get(self, entity_id: UUID) -> T | None:
-        """Return the entity with the given id, or None."""
+    async def get(self, entity_id: UUID) -> T | None: ...
 
     @abstractmethod
     async def list(self, *, offset: int, limit: int) -> tuple[Sequence[T], int]:
-        """Return a page of entities and the total count."""
+        """Trả về một trang entity kèm tổng số bản ghi."""
 
     @abstractmethod
-    async def add(self, entity: T) -> T:
-        """Persist a new entity and return it."""
+    async def add(self, entity: T) -> T: ...
 
     @abstractmethod
-    async def update(self, entity: T) -> T:
-        """Persist changes to an existing entity and return it."""
+    async def update(self, entity: T) -> T: ...
 
     @abstractmethod
     async def delete(self, entity_id: UUID) -> bool:
-        """Delete the entity by id; return False if it did not exist."""
+        """Trả về False nếu không tìm thấy."""

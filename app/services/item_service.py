@@ -1,4 +1,4 @@
-"""Business logic for the items resource."""
+"""Nghiệp vụ của resource items."""
 
 from datetime import UTC, datetime
 from uuid import UUID
@@ -10,8 +10,6 @@ from app.schemas.item import ItemCreate, ItemUpdate
 
 
 class ItemService:
-    """Coordinates item use cases on top of a repository."""
-
     def __init__(self, repository: BaseRepository[Item]) -> None:
         self._repository = repository
 

@@ -1,4 +1,4 @@
-"""CRUD and error-path tests for the items resource."""
+"""Test CRUD của resource items."""
 
 from typing import Any, cast
 

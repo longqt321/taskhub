@@ -1,4 +1,4 @@
-"""FastAPI exception handlers mapping domain errors to HTTP responses."""
+"""Đổi lỗi của app sang HTTP response, mọi lỗi trả cùng một format."""
 
 from typing import Any
 
@@ -30,7 +30,6 @@ def _error_response(
 
 
 async def app_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Map `AppError` raised by the service layer to its HTTP response."""
     assert isinstance(exc, AppError)
     if exc.status_code >= 500:
         logger.error("Application error: %s", exc.message, exc_info=exc)
@@ -38,7 +37,6 @@ async def app_error_handler(request: Request, exc: Exception) -> JSONResponse:
 
 
 async def validation_error_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Map Pydantic request validation failures to the error envelope."""
     assert isinstance(exc, RequestValidationError)
     details = [
         {"loc": [str(part) for part in error["loc"]], "msg": error["msg"], "type": error["type"]}
@@ -53,7 +51,6 @@ async def validation_error_handler(request: Request, exc: Exception) -> JSONResp
 
 
 async def http_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Map framework-raised HTTP errors (e.g. 404 route not found) to the envelope."""
     assert isinstance(exc, StarletteHTTPException)
     return _error_response(
         exc.status_code,
@@ -64,7 +61,6 @@ async def http_exception_handler(request: Request, exc: Exception) -> JSONRespon
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-    """Log and mask unexpected exceptions as a generic 500 response."""
     logger.exception("Unhandled exception while handling %s %s", request.method, request.url.path)
     return _error_response(
         status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -74,7 +70,6 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
 
 
 def register_exception_handlers(app: FastAPI) -> None:
-    """Attach all error handlers to the application."""
     app.add_exception_handler(AppError, app_error_handler)
     app.add_exception_handler(RequestValidationError, validation_error_handler)
     app.add_exception_handler(StarletteHTTPException, http_exception_handler)

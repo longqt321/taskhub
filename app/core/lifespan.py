@@ -1,4 +1,4 @@
-"""Application lifespan: startup and shutdown hooks."""
+"""Chạy lúc app start và shutdown."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -13,7 +13,6 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Run startup/shutdown logic around the application's lifetime."""
     settings = get_settings()
     logger.info(
         "Starting %s v%s (environment=%s, debug=%s)",
@@ -23,11 +22,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         settings.debug,
     )
 
-    # Day 2: create the SQLAlchemy async engine and session factory here.
-    # Day 5: create the Redis connection pool here.
+    # Day 2: tạo engine SQLAlchemy ở đây.
+    # Day 5: tạo pool Redis ở đây.
 
     yield
 
-    # Day 2: dispose the database engine here.
-    # Day 5: close the Redis connection pool here.
+    # Day 2: dispose engine.
+    # Day 5: đóng pool Redis.
     logger.info("Shutting down %s", settings.app_name)

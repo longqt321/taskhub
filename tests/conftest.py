@@ -1,4 +1,4 @@
-"""Shared pytest fixtures."""
+"""Fixtures dùng chung."""
 
 from collections.abc import AsyncIterator
 
@@ -11,7 +11,7 @@ from app.main import app
 
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
-    """HTTP client bound to the ASGI app with a fresh in-memory store."""
+    # cache_clear để mỗi test có store in-memory riêng, sạch
     get_item_repository.cache_clear()
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as http_client:

@@ -1,4 +1,4 @@
-"""Dependency-injection providers for the API layer."""
+"""Các dependency dùng chung trong router."""
 
 from dataclasses import dataclass
 from functools import lru_cache
@@ -14,11 +14,7 @@ from app.services.item_service import ItemService
 
 @lru_cache
 def get_item_repository() -> BaseRepository[Item]:
-    """Return the process-wide item repository.
-
-    Cached so the in-memory store survives across requests; Day 2 swaps this
-    for the SQLAlchemy repository without touching the endpoints.
-    """
+    # cache để dữ liệu in-memory không bị mất giữa các request
     return InMemoryRepository[Item]()
 
 
@@ -35,10 +31,6 @@ ItemServiceDep = Annotated[ItemService, Depends(get_item_service)]
 class PaginationParams:
     page: int
     limit: int
-
-    @property
-    def offset(self) -> int:
-        return (self.page - 1) * self.limit
 
 
 def get_pagination_params(

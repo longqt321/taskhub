@@ -1,83 +1,56 @@
-# TaskHub — Task Management API
+# TaskHub
 
-Dự án học FastAPI theo lộ trình 8 ngày (64h), xây dựng dần một **Task Management API** duy nhất.
-Mỗi ngày là một nhánh + một Pull Request.
+API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện mới xong Day 1: dựng khung project và CRUD mẫu cho resource `items`.
 
-**Trạng thái hiện tại: Day 1 — Core Setup & Architecture.**
+## Chạy
 
-## Yêu cầu môi trường
-
-- [uv](https://docs.astral.sh/uv/) (quản lý Python 3.14 và dependencies)
-- Docker (dùng từ Day 2 cho PostgreSQL)
-
-## Cài đặt
+Cần uv (Python 3.14).
 
 ```bash
 uv sync
-cp .env.example .env   # tuỳ chỉnh nếu cần
-```
-
-## Chạy ứng dụng
-
-```bash
+cp .env.example .env
 uv run uvicorn app.main:app --reload
 ```
 
-| URL | Mô tả |
-| --- | --- |
-| http://127.0.0.1:8000/docs | Swagger UI |
-| http://127.0.0.1:8000/redoc | ReDoc |
-| http://127.0.0.1:8000/openapi.json | OpenAPI schema |
-| http://127.0.0.1:8000/api/v1/health | Health check |
+Swagger ở http://127.0.0.1:8000/docs, ReDoc ở http://127.0.0.1:8000/redoc.
 
-## Kiểm tra chất lượng
+## Kiểm tra code
 
 ```bash
 uv run ruff check app tests
-uv run ruff format --check app tests
 uv run mypy app tests
 uv run pytest
 ```
 
-## Kiến trúc
-
-Layered architecture, phụ thuộc một chiều `API → Service → Repository`:
+## Cấu trúc
 
 ```
 app/
-├── main.py                  # create_app(), lifespan, mount router
-├── core/                    # cross-cutting: config, logging, exceptions, handlers, lifespan
-├── api/
-│   ├── deps.py              # DI providers (repository → service, pagination)
-│   └── v1/
-│       ├── router.py        # aggregate router, prefix /api/v1
-│       └── endpoints/       # HTTP handlers, không chứa business logic
-├── schemas/                 # Pydantic v2 request/response models
-├── services/                # business logic, độc lập với HTTP
-├── repositories/            # BaseRepository[T] + InMemoryRepository (Day 1)
-└── models/                  # domain entities (Day 2: SQLAlchemy ORM)
+├── main.py
+├── core/          # config, logging, exception, lifespan
+├── api/           # router, dependency, endpoint
+├── schemas/       # pydantic model
+├── services/      # nghiệp vụ
+├── repositories/  # truy cập dữ liệu
+└── models/        # entity
 ```
 
-- `core/exceptions.py` định nghĩa lỗi domain (`NotFoundError`, `ConflictError`, ...);
-  `core/exception_handlers.py` map chúng sang HTTP, nên service không import FastAPI.
-- Repository là generic `BaseRepository[T]`; Day 2 thay `InMemoryRepository` bằng
-  implementation SQLAlchemy mà không sửa service/endpoint.
-- `items` là resource scaffolding của Day 1, sẽ được thay bằng domain thật ở Day 2.
+Luồng gọi: endpoint → service → repository. Service không import FastAPI, lỗi nghiệp vụ raise `AppError` rồi handler đổi sang HTTP response.
 
-## API hiện có (Day 1)
+`BaseRepository` là interface chung, hiện chỉ có `InMemoryRepository`. Sang Day 2 thêm bản SQLAlchemy rồi bỏ bản in-memory, service và endpoint giữ nguyên.
 
-| Method | Path | Mô tả | Mã thành công |
-| --- | --- | --- | --- |
-| GET | `/api/v1/health` | Health check | 200 |
-| POST | `/api/v1/items` | Tạo item | 201 |
-| GET | `/api/v1/items?page=&limit=` | Danh sách item (phân trang) | 200 |
-| GET | `/api/v1/items/{item_id}` | Chi tiết item | 200 |
-| PATCH | `/api/v1/items/{item_id}` | Cập nhật một phần | 200 |
-| DELETE | `/api/v1/items/{item_id}` | Xoá item | 204 |
+## API
 
-### Error envelope
+| Method | Path |
+| --- | --- |
+| GET | `/api/v1/health` |
+| POST | `/api/v1/items` |
+| GET | `/api/v1/items?page=1&limit=20` |
+| GET | `/api/v1/items/{id}` |
+| PATCH | `/api/v1/items/{id}` |
+| DELETE | `/api/v1/items/{id}` |
 
-Mọi lỗi trả về cùng một cấu trúc:
+Lỗi trả về cùng một dạng:
 
 ```json
 {
@@ -89,16 +62,8 @@ Mọi lỗi trả về cùng một cấu trúc:
 }
 ```
 
-`code` gồm: `validation_error` (422), `not_found` (404), `conflict` (409),
-`bad_request` (400), `http_error` (lỗi framework), `internal_error` (500).
+`code` có thể là `validation_error`, `not_found`, `conflict`, `bad_request`, `http_error`, `internal_error`.
 
-## Lộ trình
+## Việc còn lại
 
-| Ngày | Nội dung | Trạng thái |
-| --- | --- | --- |
-| 1 | Core Setup & Architecture | ✅ |
-| 2 | Database: SQLAlchemy 2.x & Alembic | ⏳ |
-| 3–7 | Business Logic & Core Features (auth, RBAC, cache, background task) | ⏳ |
-| 8 | Review, Refactor & Optimization | ⏳ |
-
-Các hạng mục ngoài phạm vi từng ngày được ghi tại [docs/BACKLOG.md](docs/BACKLOG.md).
+Xem [docs/BACKLOG.md](docs/BACKLOG.md).

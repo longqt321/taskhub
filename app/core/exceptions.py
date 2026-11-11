@@ -1,16 +1,13 @@
-"""Application-level exception hierarchy.
+"""Lỗi nghiệp vụ.
 
-Services and repositories raise these errors instead of HTTP-specific
-exceptions, keeping the business layer independent from FastAPI. The API layer
-maps them to HTTP responses via the handlers in `app.core.exception_handlers`.
+Service raise mấy lỗi này thay vì HTTPException, để tầng service không phải
+import FastAPI. Tầng API đổi chúng sang HTTP response trong exception_handlers.
 """
 
 from typing import Any
 
 
 class AppError(Exception):
-    """Base class for expected, domain-level failures."""
-
     status_code: int = 500
     code: str = "internal_error"
     default_message: str = "Internal server error"

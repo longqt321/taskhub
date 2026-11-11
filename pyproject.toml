@@ -1,7 +1,7 @@
 [project]
 name = "taskhub"
 version = "0.1.0"
-description = "TaskHub — Task Management API (FastAPI learning project)"
+description = "TaskHub - Task Management API"
 requires-python = ">=3.14"
 dependencies = [
     "fastapi>=0.115",

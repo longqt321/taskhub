@@ -1,4 +1,4 @@
-"""CRUD endpoints for the items resource."""
+"""Endpoint CRUD cho items."""
 
 from uuid import UUID
 

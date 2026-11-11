@@ -1,4 +1,4 @@
-"""Logging configuration."""
+"""Cấu hình logging."""
 
 import logging
 from logging.config import dictConfig
@@ -6,7 +6,6 @@ from typing import Any
 
 
 def configure_logging(level: str = "INFO") -> None:
-    """Configure root logging once, in a uvicorn-friendly format."""
     config: dict[str, Any] = {
         "version": 1,
         "disable_existing_loggers": False,
@@ -31,5 +30,4 @@ def configure_logging(level: str = "INFO") -> None:
 
 
 def get_logger(name: str) -> logging.Logger:
-    """Return a module-scoped logger."""
     return logging.getLogger(name)

@@ -1,4 +1,4 @@
-"""In-memory repository used on Day 1, before the database layer exists."""
+"""Repository in-memory, dùng tạm khi chưa có DB."""
 
 from collections.abc import Sequence
 from uuid import UUID
@@ -7,8 +7,6 @@ from app.repositories.base import BaseRepository, HasId
 
 
 class InMemoryRepository[T: HasId](BaseRepository[T]):
-    """Stores entities in a dict keyed by id, preserving insertion order."""
-
     def __init__(self) -> None:
         self._items: dict[UUID, T] = {}
 

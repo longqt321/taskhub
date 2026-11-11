@@ -1,4 +1,4 @@
-"""TaskHub application entrypoint."""
+"""Entrypoint của app."""
 
 from fastapi import FastAPI
 
@@ -10,14 +10,13 @@ from app.core.logging import configure_logging
 
 
 def create_app() -> FastAPI:
-    """Build and configure the FastAPI application."""
     settings = get_settings()
     configure_logging(settings.log_level)
 
     app = FastAPI(
         title=settings.app_name,
         version=settings.app_version,
-        description="TaskHub — Task Management API",
+        description="TaskHub - Task Management API",
         lifespan=lifespan,
         docs_url="/docs",
         redoc_url="/redoc",

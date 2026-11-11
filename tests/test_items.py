@@ -82,6 +82,24 @@ async def test_update_item_only_changes_provided_fields(client: AsyncClient) -> 
     assert body["updated_at"] > created["updated_at"]
 
 
+async def test_update_item_rejects_null_name(client: AsyncClient) -> None:
+    created = await _create_item(client)
+
+    response = await client.patch(f"{ITEMS_URL}/{created['id']}", json={"name": None})
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "validation_error"
+
+
+async def test_update_item_can_clear_description(client: AsyncClient) -> None:
+    created = await _create_item(client)
+
+    response = await client.patch(f"{ITEMS_URL}/{created['id']}", json={"description": None})
+
+    assert response.status_code == 200
+    assert response.json()["description"] is None
+
+
 async def test_update_missing_item_returns_404(client: AsyncClient) -> None:
     response = await client.patch(
         f"{ITEMS_URL}/00000000-0000-0000-0000-000000000000", json={"name": "x"}

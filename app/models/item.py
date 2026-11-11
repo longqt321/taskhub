@@ -21,4 +21,9 @@ class Item:
     description: str | None = None
     id: UUID = field(default_factory=uuid4)
     created_at: datetime = field(default_factory=_utcnow)
-    updated_at: datetime = field(default_factory=_utcnow)
+    updated_at: datetime | None = None
+
+    def __post_init__(self) -> None:
+        # A freshly created entity has not been modified yet.
+        if self.updated_at is None:
+            self.updated_at = self.created_at

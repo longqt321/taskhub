@@ -1,13 +1,18 @@
-"""Entity task.
+"""Model SQLAlchemy của resource tasks.
 
-Day 1 chưa có project và user nên Task chỉ gồm các field tự thân. Day 4 thêm
-project_id, assignee_id, created_by khi có workspace và auth.
+Day 1 dùng dataclass thuần, từ Day 2 chuyển sang TaskModel lưu xuống Postgres.
+Day 4 sẽ thêm project_id, assignee_id, created_by khi có workspace và auth.
 """
 
 import enum
-from dataclasses import dataclass, field
-from datetime import UTC, datetime
+from datetime import datetime
 from uuid import UUID, uuid4
+
+from sqlalchemy import DateTime, Enum, String, Text, Uuid
+from sqlalchemy.orm import Mapped, mapped_column
+
+from app.core.constants import MAX_TITLE_LENGTH
+from app.models.base import Base, utcnow
 
 
 class TaskStatus(enum.StrEnum):
@@ -17,16 +22,17 @@ class TaskStatus(enum.StrEnum):
     DONE = "DONE"
 
 
-@dataclass(slots=True)
-class Task:
-    title: str
-    description: str | None = None
-    status: TaskStatus = TaskStatus.TODO
-    id: UUID = field(default_factory=uuid4)
-    created_at: datetime = field(default_factory=lambda: datetime.now(UTC))
-    updated_at: datetime | None = None
+class TaskModel(Base):
+    __tablename__ = "tasks"
 
-    def __post_init__(self) -> None:
-        # Vừa tạo thì chưa sửa gì, updated_at bằng created_at.
-        if self.updated_at is None:
-            self.updated_at = self.created_at
+    id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    title: Mapped[str] = mapped_column(String(MAX_TITLE_LENGTH))
+    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[TaskStatus] = mapped_column(
+        Enum(TaskStatus, name="task_status", native_enum=False, length=20),
+        default=TaskStatus.TODO,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+    )

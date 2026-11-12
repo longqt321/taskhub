@@ -6,6 +6,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from app.core.constants import MAX_DESCRIPTION_LENGTH, MAX_TITLE_LENGTH
+from app.core.messages import MSG_STATUS_CANNOT_BE_NULL, MSG_TITLE_CANNOT_BE_NULL
 from app.models.task import TaskStatus
 from app.schemas.base import BaseSchema
 
@@ -24,9 +25,10 @@ class TaskUpdate(BaseSchema):
     @model_validator(mode="after")
     def _reject_null_on_required_fields(self) -> TaskUpdate:
         # title và status là NOT NULL, gửi null là lỗi client chứ không phải ý xoá.
-        for field_name in ("title", "status"):
-            if field_name in self.model_fields_set and getattr(self, field_name) is None:
-                raise ValueError(f"{field_name} cannot be null")
+        if "title" in self.model_fields_set and self.title is None:
+            raise ValueError(MSG_TITLE_CANNOT_BE_NULL)
+        if "status" in self.model_fields_set and self.status is None:
+            raise ValueError(MSG_STATUS_CANNOT_BE_NULL)
         return self
 
 

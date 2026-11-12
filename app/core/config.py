@@ -22,12 +22,22 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
+    # Bắt buộc khai báo trong .env, không đặt default để tránh lỡ trỏ nhầm DB.
+    database_url: str
+
     @field_validator("api_v1_prefix")
     @classmethod
     def _check_api_prefix(cls, value: str) -> str:
         if not value.startswith("/"):
             raise ValueError("api_v1_prefix phải bắt đầu bằng '/'")
         return value.rstrip("/")
+
+    @field_validator("database_url")
+    @classmethod
+    def _check_database_url(cls, value: str) -> str:
+        if not value.startswith("postgresql+asyncpg://"):
+            raise ValueError("database_url phải dùng driver postgresql+asyncpg")
+        return value
 
 
 @lru_cache

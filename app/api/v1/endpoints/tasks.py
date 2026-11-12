@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, status
 
 from app.api.deps import PaginationDep, TaskServiceDep
+from app.core.messages import MSG_TASK_NOT_FOUND
 from app.schemas.common import ErrorResponse, Page
 from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 
@@ -15,7 +16,7 @@ _VALIDATION_ERROR: dict[int | str, dict[str, Any]] = {
     422: {"model": ErrorResponse, "description": "Validation error"}
 }
 _NOT_FOUND: dict[int | str, dict[str, Any]] = {
-    404: {"model": ErrorResponse, "description": "Task not found"}
+    404: {"model": ErrorResponse, "description": MSG_TASK_NOT_FOUND}
 }
 
 

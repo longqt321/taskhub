@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
-    # Bắt buộc khai báo trong .env, không đặt default để tránh lỡ trỏ nhầm DB.
+    # Bắt buộc khai báo trong .env, không đặt default để khỏi lỡ trỏ nhầm DB.
     database_url: str
 
     @field_validator("api_v1_prefix")

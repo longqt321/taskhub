@@ -1,18 +1,34 @@
-"""Fixtures dùng chung."""
+"""Fixtures dùng chung. Test chạy trên database taskhub_test, không đụng DB dev."""
+
+import os
+
+# Phải set trước khi import app để Settings đọc đúng URL test
+os.environ["DATABASE_URL"] = "postgresql+asyncpg://taskhub:taskhub@localhost:5433/taskhub_test"
 
 from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from app.api.deps import get_item_repository
+from app.core.database import create_engine, create_session_factory
 from app.main import app
+from app.models.item import Base
+
+TEST_URL = os.environ["DATABASE_URL"]
 
 
 @pytest.fixture
 async def client() -> AsyncIterator[AsyncClient]:
-    # cache_clear để mỗi test có store in-memory riêng, sạch
-    get_item_repository.cache_clear()
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as http_client:
+    engine = create_engine(TEST_URL)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    app.state.engine = engine
+    app.state.session_factory = create_session_factory(engine)
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as http_client:
         yield http_client
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()

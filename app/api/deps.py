@@ -1,25 +1,26 @@
 """Các dependency dùng chung trong router."""
 
 from dataclasses import dataclass
-from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.item import Item
+from app.core.database import get_session
+from app.models.item import ItemModel
 from app.repositories.base import BaseRepository
-from app.repositories.in_memory import InMemoryRepository
+from app.repositories.sqlalchemy_repo import SqlAlchemyRepository
 from app.services.item_service import ItemService
 
 
-@lru_cache
-def get_item_repository() -> BaseRepository[Item]:
-    # cache để dữ liệu in-memory không bị mất giữa các request
-    return InMemoryRepository[Item]()
+def get_item_repository(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> BaseRepository[ItemModel]:
+    return SqlAlchemyRepository(session, ItemModel, ItemModel.created_at)
 
 
 def get_item_service(
-    repository: Annotated[BaseRepository[Item], Depends(get_item_repository)],
+    repository: Annotated[BaseRepository[ItemModel], Depends(get_item_repository)],
 ) -> ItemService:
     return ItemService(repository)
 

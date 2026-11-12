@@ -9,7 +9,6 @@ from collections.abc import AsyncIterator
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
 
 from app.core.database import create_engine, create_session_factory
 from app.main import app
@@ -31,6 +30,5 @@ async def client() -> AsyncIterator[AsyncClient]:
         yield http_client
 
     async with engine.begin() as conn:
-        await conn.execute(text("TRUNCATE items"))
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()

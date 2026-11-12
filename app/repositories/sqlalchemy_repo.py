@@ -8,7 +8,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
-from app.models.item import ItemModel
 from app.repositories.base import BaseRepository
 
 
@@ -54,6 +53,3 @@ class SqlAlchemyRepository[T](BaseRepository[T]):
         await self._session.delete(entity)
         await self._session.commit()
         return True
-
-
-ItemRepository = SqlAlchemyRepository[ItemModel]

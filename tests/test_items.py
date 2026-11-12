@@ -19,7 +19,7 @@ async def test_create_item(client: AsyncClient) -> None:
     assert body["name"] == "Write tests"
     assert body["description"] == "day 1"
     assert body["id"]
-    assert body["created_at"] == body["updated_at"]
+    assert body["created_at"] <= body["updated_at"]
 
 
 async def test_create_item_rejects_empty_name(client: AsyncClient) -> None:

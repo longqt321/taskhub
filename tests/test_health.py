@@ -14,7 +14,7 @@ async def test_openapi_schema_is_served(client: AsyncClient) -> None:
     response = await client.get("/openapi.json")
 
     assert response.status_code == 200
-    assert "/api/v1/items" in response.json()["paths"]
+    assert "/api/v1/tasks" in response.json()["paths"]
 
 
 async def test_unknown_route_returns_json_error(client: AsyncClient) -> None:

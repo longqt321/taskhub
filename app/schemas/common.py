@@ -3,20 +3,22 @@
 import math
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+
+from app.schemas.base import BaseSchema
 
 
-class ErrorDetail(BaseModel):
+class ErrorDetail(BaseSchema):
     code: str
     message: str
     details: Any | None = None
 
 
-class ErrorResponse(BaseModel):
+class ErrorResponse(BaseSchema):
     error: ErrorDetail
 
 
-class Page[T](BaseModel):
+class Page[T](BaseSchema):
     items: list[T]
     total: int = Field(ge=0)
     page: int = Field(ge=1)

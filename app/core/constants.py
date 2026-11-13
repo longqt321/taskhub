@@ -1,0 +1,8 @@
+"""Giới hạn độ dài và phân trang dùng chung."""
+
+MAX_TITLE_LENGTH = 200
+MAX_DESCRIPTION_LENGTH = 2000
+
+DEFAULT_PAGE = 1
+DEFAULT_LIMIT = 20
+MAX_LIMIT = 100

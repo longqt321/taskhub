@@ -4,15 +4,17 @@ Những phần chưa làm, để dành các ngày sau.
 
 ## Day 2
 
-- SQLAlchemy 2.x async, model domain thật, Alembic migration
+- SQLAlchemy 2.x async, model task thật, Alembic migration
 - Repository bản SQLAlchemy, bỏ `InMemoryRepository`
 - docker-compose chạy PostgreSQL trong container, không cài lên máy host
-- Bỏ resource `items` tạm
+- `DATABASE_URL` bắt buộc, không để default trong code
 
 ## Day 3-4
 
 - Auth: register, login, refresh, logout; JWT; hash password
 - RBAC ADMIN/OWNER/EDITOR/VIEWER, kiểm tra quyền theo từng resource
+- Model domain còn lại: workspaces, workspace_members, projects, labels, comments
+- Thêm `project_id`, `assignee_id`, `created_by`, `priority`, `due_date` cho task
 
 ## Day 5-7
 

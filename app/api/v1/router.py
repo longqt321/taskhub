@@ -2,10 +2,10 @@
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import items
+from app.api.v1.endpoints import tasks
 
 api_router = APIRouter()
-api_router.include_router(items.router)
+api_router.include_router(tasks.router)
 
 
 @api_router.get("/health", tags=["health"], summary="Service health check")

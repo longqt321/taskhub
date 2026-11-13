@@ -1,41 +1,36 @@
 """Các dependency dùng chung trong router."""
 
-from dataclasses import dataclass
 from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, Query
 
-from app.models.item import Item
+from app.core.constants import DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT
+from app.core.pagination import PaginationParams
+from app.models.task import Task
 from app.repositories.base import BaseRepository
 from app.repositories.in_memory import InMemoryRepository
-from app.services.item_service import ItemService
+from app.services.task_service import TaskService
 
 
 @lru_cache
-def get_item_repository() -> BaseRepository[Item]:
+def get_task_repository() -> BaseRepository[Task]:
     # cache để dữ liệu in-memory không bị mất giữa các request
-    return InMemoryRepository[Item]()
+    return InMemoryRepository[Task]()
 
 
-def get_item_service(
-    repository: Annotated[BaseRepository[Item], Depends(get_item_repository)],
-) -> ItemService:
-    return ItemService(repository)
+def get_task_service(
+    repository: Annotated[BaseRepository[Task], Depends(get_task_repository)],
+) -> TaskService:
+    return TaskService(repository)
 
 
-ItemServiceDep = Annotated[ItemService, Depends(get_item_service)]
-
-
-@dataclass(frozen=True, slots=True)
-class PaginationParams:
-    page: int
-    limit: int
+TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 
 
 def get_pagination_params(
-    page: Annotated[int, Query(ge=1, description="1-based page number")] = 1,
-    limit: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
+    page: Annotated[int, Query(ge=1, description="1-based page number")] = DEFAULT_PAGE,
+    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT, description="Items per page")] = DEFAULT_LIMIT,
 ) -> PaginationParams:
     return PaginationParams(page=page, limit=limit)
 

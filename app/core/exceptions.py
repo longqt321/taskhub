@@ -6,11 +6,13 @@ import FastAPI. Tầng API đổi chúng sang HTTP response trong exception_hand
 
 from typing import Any
 
+from app.core import messages
+
 
 class AppError(Exception):
     status_code: int = 500
-    code: str = "internal_error"
-    default_message: str = "Internal server error"
+    code: str = messages.CODE_INTERNAL_ERROR
+    default_message: str = messages.MSG_INTERNAL_ERROR
 
     def __init__(self, message: str | None = None, details: Any = None) -> None:
         self.message = message or self.default_message
@@ -20,17 +22,17 @@ class AppError(Exception):
 
 class BadRequestError(AppError):
     status_code = 400
-    code = "bad_request"
+    code = messages.CODE_BAD_REQUEST
     default_message = "Bad request"
 
 
 class NotFoundError(AppError):
     status_code = 404
-    code = "not_found"
+    code = messages.CODE_NOT_FOUND
     default_message = "Resource not found"
 
 
 class ConflictError(AppError):
     status_code = 409
-    code = "conflict"
+    code = messages.CODE_CONFLICT
     default_message = "Resource conflict"

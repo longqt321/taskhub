@@ -22,17 +22,6 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
 
-    # Chưa dùng ở Day 1, khai báo sẵn để file .env thống nhất từ đầu.
-    database_url: str = "postgresql+asyncpg://taskhub:taskhub@localhost:5432/taskhub"
-    redis_url: str = "redis://localhost:6379/0"
-
-    @field_validator("database_url")
-    @classmethod
-    def _check_database_url(cls, value: str) -> str:
-        if not value.startswith("postgresql+asyncpg://"):
-            raise ValueError("database_url phải dùng driver postgresql+asyncpg")
-        return value
-
     @field_validator("api_v1_prefix")
     @classmethod
     def _check_api_prefix(cls, value: str) -> str:

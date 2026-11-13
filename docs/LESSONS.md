@@ -13,3 +13,10 @@
 - **Lỗi:** trong báo cáo intern ghi "Port 5432 bị chiếm nên phải đổi sang 5433" vào mục Khó khăn.
 - **Nguyên nhân:** nhầm giữa vấn đề kỹ thuật nhỏ đã xử lý xong trong vài phút với khó khăn thực sự của quá trình làm việc. Mục Khó khăn dành cho thứ ảnh hưởng tiến độ hoặc cần hỗ trợ, không phải log chi tiết môi trường.
 - **Cách phòng tránh:** trước khi ghi vào mục Khó khăn, tự hỏi: (1) đã giải quyết xong chưa, (2) có ảnh hưởng tiến độ hay cần ai giúp không. Nếu cả hai đều không thì bỏ qua, ghi N/A. Chi tiết kỹ thuật loại này chỉ cần comment trong code/README.
+
+## L-003 — Lặp lại lỗi null ở PATCH khi thêm schema mới
+
+- **Ngày:** 2026-11-13
+- **Lỗi:** `PATCH /users/me` với `{"full_name": null}` trả 500 (`NotNullViolationError`) thay vì 422, đúng y lỗi L-001 nhưng ở schema khác.
+- **Nguyên nhân:** khi viết `UserUpdate` tôi copy pattern `str | None = None` mà quên áp lại validator chặn null cho field NOT NULL. Test cũng chưa có case này nên không ai bắt được.
+- **Cách phòng tránh:** mỗi khi thêm schema PATCH mới, đi qua từng field và xác định field nào NOT NULL thì phải chặn null ngay, kèm một test cho mỗi field đó. Không copy schema cũ mà bỏ qua validator.

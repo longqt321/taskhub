@@ -1,6 +1,6 @@
 # TaskHub
 
-API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 2: có Postgres, SQLAlchemy async và Alembic, CRUD `items` lưu thật xuống DB.
+API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 3: có đăng ký/đăng nhập bằng JWT, refresh token xoay vòng, phân quyền theo role.
 
 ## Chạy
 
@@ -9,7 +9,7 @@ Cần uv (Python 3.14) và Docker.
 ```bash
 docker compose up -d          # postgres 16, host port 5433
 uv sync
-cp .env.example .env
+cp .env.example .env          # nhớ đổi SECRET_KEY
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
@@ -26,7 +26,7 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
-`migrations/env.py` lấy URL từ `app.core.config` nên không cần sửa `alembic.ini`.
+`migrations/env.py` lấy URL từ `app.core.config` và metadata từ `app.models` nên thêm model mới chỉ cần export trong `app/models/__init__.py`.
 
 ## Kiểm tra code
 
@@ -46,7 +46,7 @@ Test tạo bảng bằng metadata rồi drop sau mỗi test, không đụng DB d
 ```
 app/
 ├── main.py
-├── core/          # config, logging, exception, database, lifespan
+├── core/          # config, logging, exception, database, security, lifespan
 ├── api/           # router, dependency, endpoint
 ├── schemas/       # pydantic model
 ├── services/      # nghiệp vụ
@@ -59,16 +59,30 @@ Luồng gọi: endpoint → service → repository. Service không import FastAP
 
 `BaseRepository` là interface chung, `SqlAlchemyRepository` là bản cài đặt. Engine và session factory tạo một lần trong lifespan, mỗi request được cấp một session riêng.
 
+## Auth
+
+- Mật khẩu băm bằng argon2 (`pwdlib`), không lưu plaintext.
+- Access token 30 phút, refresh token 7 ngày. Refresh token lưu `jti` vào DB để thu hồi được.
+- `POST /auth/refresh` xoay vòng: token cũ bị revoke, cấp cặp mới. Dùng lại token cũ trả 401.
+- `get_current_user` đọc Bearer token, kiểm tra user còn tồn tại và `is_active`.
+- `RequireRoles(...)` kiểm tra role; ADMIN luôn được đi qua. Thiếu quyền trả 403.
+
 ## API
 
-| Method | Path |
-| --- | --- |
-| GET | `/api/v1/health` |
-| POST | `/api/v1/items` |
-| GET | `/api/v1/items?page=1&limit=20` |
-| GET | `/api/v1/items/{id}` |
-| PATCH | `/api/v1/items/{id}` |
-| DELETE | `/api/v1/items/{id}` |
+| Method | Path | Auth |
+| --- | --- | --- |
+| GET | `/api/v1/health` | không |
+| POST | `/api/v1/auth/register` | không |
+| POST | `/api/v1/auth/login` | không |
+| POST | `/api/v1/auth/refresh` | không |
+| POST | `/api/v1/auth/logout` | không |
+| GET | `/api/v1/users/me` | Bearer |
+| PATCH | `/api/v1/users/me` | Bearer |
+| POST | `/api/v1/items` | Bearer |
+| GET | `/api/v1/items?page=1&limit=20` | Bearer |
+| GET | `/api/v1/items/{id}` | Bearer |
+| PATCH | `/api/v1/items/{id}` | Bearer |
+| DELETE | `/api/v1/items/{id}` | Bearer |
 
 Lỗi trả về cùng một dạng:
 
@@ -82,7 +96,7 @@ Lỗi trả về cùng một dạng:
 }
 ```
 
-`code` có thể là `validation_error`, `not_found`, `conflict`, `bad_request`, `http_error`, `internal_error`.
+`code` có thể là `validation_error`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `bad_request`, `http_error`, `internal_error`.
 
 ## Việc còn lại
 

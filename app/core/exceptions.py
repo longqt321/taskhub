@@ -34,3 +34,15 @@ class ConflictError(AppError):
     status_code = 409
     code = "conflict"
     default_message = "Resource conflict"
+
+
+class UnauthorizedError(AppError):
+    status_code = 401
+    code = "unauthorized"
+    default_message = "Not authenticated"
+
+
+class ForbiddenError(AppError):
+    status_code = 403
+    code = "forbidden"
+    default_message = "Insufficient permissions"

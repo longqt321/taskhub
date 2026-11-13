@@ -3,7 +3,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -25,6 +25,19 @@ class Settings(BaseSettings):
     # Chưa dùng ở Day 1, khai báo sẵn để file .env thống nhất từ đầu.
     database_url: str = "postgresql+asyncpg://taskhub:taskhub@localhost:5433/taskhub"
     redis_url: str = "redis://localhost:6379/0"
+
+    # JWT. secret_key phải đủ dài (>= 32 bytes) cho HS256.
+    secret_key: str
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
+    access_token_expire_minutes: int = Field(default=30, ge=1)
+    refresh_token_expire_days: int = Field(default=7, ge=1)
+
+    @field_validator("secret_key")
+    @classmethod
+    def _check_secret_key(cls, value: str) -> str:
+        if len(value.encode()) < 32:
+            raise ValueError("secret_key phải dài ít nhất 32 bytes")
+        return value
 
     @field_validator("database_url")
     @classmethod

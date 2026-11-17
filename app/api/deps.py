@@ -1,18 +1,18 @@
 """Các dependency dùng chung trong router."""
 
 from typing import Annotated
-from uuid import UUID
 
 import jwt
 from fastapi import Depends, Query
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core import messages
 from app.core.constants import DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT
 from app.core.database import get_session
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.pagination import PaginationParams
-from app.core.security import decode_token
+from app.core.security import TokenType, decode_token, subject_from_payload
 from app.models.task import TaskModel
 from app.models.user import User, UserRole
 from app.repositories.base import BaseRepository
@@ -64,8 +64,9 @@ AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 
 def get_user_service(
     users: Annotated[UserRepository, Depends(get_user_repository)],
+    refresh_tokens: Annotated[RefreshTokenRepository, Depends(get_refresh_token_repository)],
 ) -> UserService:
-    return UserService(users)
+    return UserService(users, refresh_tokens)
 
 
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
@@ -75,19 +76,33 @@ async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     users: Annotated[UserRepository, Depends(get_user_repository)],
 ) -> User:
+    """Giải mã access token rồi lấy user. Chỗ duy nhất làm việc này."""
     if credentials is None:
-        raise UnauthorizedError()
+        raise UnauthorizedError(messages.MSG_NOT_AUTHENTICATED)
     try:
-        payload = decode_token(credentials.credentials, expected_type="access")
+        payload = decode_token(credentials.credentials, TokenType.ACCESS)
+        user_id = subject_from_payload(payload)
     except jwt.InvalidTokenError as exc:
-        raise UnauthorizedError("Invalid or expired token") from exc
-    user = await users.get(UUID(payload["sub"]))
-    if user is None or not user.is_active:
-        raise UnauthorizedError("User not found or inactive")
+        raise UnauthorizedError(messages.MSG_INVALID_TOKEN) from exc
+
+    user = await users.get(user_id)
+    if user is None:
+        raise UnauthorizedError(messages.MSG_USER_NOT_FOUND)
+    if not user.is_active:
+        raise UnauthorizedError(messages.MSG_INACTIVE_USER)
     return user
 
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
+
+
+async def get_current_admin(user: CurrentUser) -> User:
+    if user.role != UserRole.ADMIN:
+        raise ForbiddenError(messages.MSG_ADMIN_REQUIRED)
+    return user
+
+
+CurrentAdmin = Annotated[User, Depends(get_current_admin)]
 
 
 class RequireRoles:
@@ -104,7 +119,7 @@ class RequireRoles:
 
 def get_pagination_params(
     page: Annotated[int, Query(ge=1, description="1-based page number")] = DEFAULT_PAGE,
-    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT, description="Tasks per page")] = DEFAULT_LIMIT,
+    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT, description="Items per page")] = DEFAULT_LIMIT,
 ) -> PaginationParams:
     return PaginationParams(page=page, limit=limit)
 

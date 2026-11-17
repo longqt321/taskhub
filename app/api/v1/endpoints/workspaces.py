@@ -1,13 +1,19 @@
 """Endpoint CRUD cho workspace và thành viên. Owner mới sửa được workspace."""
 
-from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, status
 
 from app.api.deps import CurrentUser, PaginationDep, WorkspaceServiceDep
+from app.api.responses import (
+    CONFLICT,
+    FORBIDDEN,
+    UNAUTHORIZED,
+    VALIDATION_ERROR,
+    not_found,
+)
 from app.core.messages import MSG_WORKSPACE_NOT_FOUND
-from app.schemas.common import ErrorResponse, Page
+from app.schemas.common import Page
 from app.schemas.workspace import (
     MemberInvite,
     MemberRead,
@@ -19,28 +25,14 @@ from app.schemas.workspace import (
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
-_UNAUTHORIZED: dict[int | str, dict[str, Any]] = {
-    401: {"model": ErrorResponse, "description": "Missing or invalid token"}
-}
-_FORBIDDEN: dict[int | str, dict[str, Any]] = {
-    403: {"model": ErrorResponse, "description": "Not a member or insufficient role"}
-}
-_NOT_FOUND: dict[int | str, dict[str, Any]] = {
-    404: {"model": ErrorResponse, "description": MSG_WORKSPACE_NOT_FOUND}
-}
-_VALIDATION_ERROR: dict[int | str, dict[str, Any]] = {
-    422: {"model": ErrorResponse, "description": "Validation error"}
-}
-_CONFLICT: dict[int | str, dict[str, Any]] = {
-    409: {"model": ErrorResponse, "description": "Member already exists"}
-}
+_NOT_FOUND = not_found(MSG_WORKSPACE_NOT_FOUND)
 
 
 @router.post(
     "",
     status_code=status.HTTP_201_CREATED,
     summary="Create a workspace",
-    responses={**_UNAUTHORIZED, **_VALIDATION_ERROR},
+    responses={**UNAUTHORIZED, **VALIDATION_ERROR},
 )
 async def create_workspace(
     payload: WorkspaceCreate, service: WorkspaceServiceDep, user: CurrentUser
@@ -51,7 +43,7 @@ async def create_workspace(
 @router.get(
     "",
     summary="List workspaces you belong to",
-    responses={**_UNAUTHORIZED, **_VALIDATION_ERROR},
+    responses={**UNAUTHORIZED, **VALIDATION_ERROR},
 )
 async def list_workspaces(
     service: WorkspaceServiceDep, pagination: PaginationDep, user: CurrentUser
@@ -68,7 +60,7 @@ async def list_workspaces(
 @router.get(
     "/{workspace_id}",
     summary="Get a workspace",
-    responses={**_UNAUTHORIZED, **_FORBIDDEN, **_NOT_FOUND},
+    responses={**UNAUTHORIZED, **FORBIDDEN, **_NOT_FOUND},
 )
 async def get_workspace(
     workspace_id: UUID, service: WorkspaceServiceDep, user: CurrentUser
@@ -79,7 +71,7 @@ async def get_workspace(
 @router.patch(
     "/{workspace_id}",
     summary="Rename a workspace (owner only)",
-    responses={**_UNAUTHORIZED, **_FORBIDDEN, **_NOT_FOUND, **_VALIDATION_ERROR},
+    responses={**UNAUTHORIZED, **FORBIDDEN, **_NOT_FOUND, **VALIDATION_ERROR},
 )
 async def update_workspace(
     workspace_id: UUID, payload: WorkspaceUpdate, service: WorkspaceServiceDep, user: CurrentUser
@@ -91,7 +83,7 @@ async def update_workspace(
     "/{workspace_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Delete a workspace (owner only)",
-    responses={**_UNAUTHORIZED, **_FORBIDDEN, **_NOT_FOUND},
+    responses={**UNAUTHORIZED, **FORBIDDEN, **_NOT_FOUND},
 )
 async def delete_workspace(
     workspace_id: UUID, service: WorkspaceServiceDep, user: CurrentUser
@@ -102,7 +94,7 @@ async def delete_workspace(
 @router.get(
     "/{workspace_id}/members",
     summary="List workspace members",
-    responses={**_UNAUTHORIZED, **_FORBIDDEN, **_NOT_FOUND},
+    responses={**UNAUTHORIZED, **FORBIDDEN, **_NOT_FOUND},
 )
 async def list_members(
     workspace_id: UUID, service: WorkspaceServiceDep, user: CurrentUser
@@ -115,7 +107,7 @@ async def list_members(
     "/{workspace_id}/members",
     status_code=status.HTTP_201_CREATED,
     summary="Add a member to the workspace (owner only)",
-    responses={**_UNAUTHORIZED, **_FORBIDDEN, **_NOT_FOUND, **_CONFLICT, **_VALIDATION_ERROR},
+    responses={**UNAUTHORIZED, **FORBIDDEN, **_NOT_FOUND, **CONFLICT, **VALIDATION_ERROR},
 )
 async def invite_member(
     workspace_id: UUID, payload: MemberInvite, service: WorkspaceServiceDep, user: CurrentUser
@@ -126,7 +118,7 @@ async def invite_member(
 @router.patch(
     "/{workspace_id}/members/{member_user_id}",
     summary="Change a member role (owner only)",
-    responses={**_UNAUTHORIZED, **_FORBIDDEN, **_NOT_FOUND, **_VALIDATION_ERROR},
+    responses={**UNAUTHORIZED, **FORBIDDEN, **_NOT_FOUND, **VALIDATION_ERROR},
 )
 async def change_member_role(
     workspace_id: UUID,
@@ -143,7 +135,7 @@ async def change_member_role(
     "/{workspace_id}/members/{member_user_id}",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Remove a member from the workspace (owner only)",
-    responses={**_UNAUTHORIZED, **_FORBIDDEN, **_NOT_FOUND},
+    responses={**UNAUTHORIZED, **FORBIDDEN, **_NOT_FOUND},
 )
 async def remove_member(
     workspace_id: UUID, member_user_id: UUID, service: WorkspaceServiceDep, user: CurrentUser

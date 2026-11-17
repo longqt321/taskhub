@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 
 from app.api.deps import CurrentUser, UserServiceDep
-from app.schemas.common import ErrorResponse
+from app.api.responses import UNAUTHORIZED, VALIDATION_ERROR
 from app.schemas.user import UserRead, UserUpdate
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -12,9 +12,7 @@ router = APIRouter(prefix="/users", tags=["users"])
 @router.get(
     "/me",
     summary="Get current user profile",
-    responses={
-        401: {"model": ErrorResponse, "description": "Missing or invalid token"},
-    },
+    responses=UNAUTHORIZED,
 )
 async def get_me(user: CurrentUser) -> UserRead:
     return UserRead(
@@ -30,10 +28,7 @@ async def get_me(user: CurrentUser) -> UserRead:
 @router.patch(
     "/me",
     summary="Update current user profile",
-    responses={
-        401: {"model": ErrorResponse, "description": "Missing or invalid token"},
-        422: {"model": ErrorResponse, "description": "Validation error"},
-    },
+    responses={**UNAUTHORIZED, **VALIDATION_ERROR},
 )
 async def update_me(payload: UserUpdate, user: CurrentUser, service: UserServiceDep) -> UserRead:
     updated = await service.update(user, payload)

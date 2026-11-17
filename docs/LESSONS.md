@@ -20,3 +20,11 @@
 - **Lỗi:** `PATCH /users/me` với `{"full_name": null}` trả 500 (`NotNullViolationError`) thay vì 422, đúng y lỗi L-001 nhưng ở schema khác.
 - **Nguyên nhân:** khi viết `UserUpdate` tôi copy pattern `str | None = None` mà quên áp lại validator chặn null cho field NOT NULL. Test cũng chưa có case này nên không ai bắt được.
 - **Cách phòng tránh:** mỗi khi thêm schema PATCH mới, đi qua từng field và xác định field nào NOT NULL thì phải chặn null ngay, kèm một test cho mỗi field đó. Không copy schema cũ mà bỏ qua validator.
+
+## L-004 — Nhầm 72 ký tự với 72 byte, và sub JWT hỏng gây 500
+
+- **Ngày:** 2026-11-17
+- **Lỗi:** reviewer chỉ ra `password: max_length=72` chỉ giới hạn số ký tự, trong khi bcrypt cắt theo byte; token ký hợp lệ nhưng `sub` không phải UUID thì endpoint trả 500 thay vì 401.
+- **Nguyên nhân:** copy giới hạn từ tài liệu bcrypt mà không phân biệt byte/ký tự (một ký tự tiếng Việt có thể chiếm 2 byte). Ở `get_current_user`, `UUID(payload["sub"])` nằm ngoài khối `try` bắt `jwt.InvalidTokenError`.
+- **Cách sửa:** validator kiểm tra `len(password.encode()) <= 72` cho cả register, login và đổi mật khẩu; gom hàm `subject_from_payload` đổi `KeyError/ValueError` thành `jwt.InvalidTokenError` rồi dùng chung ở mọi chỗ giải mã token.
+- **Cách phòng tránh:** với giới hạn liên quan đến hash/crypto, luôn xác nhận đơn vị (byte hay ký tự) và thêm test với chuỗi multibyte. Mọi thao tác đọc claim từ JWT đều đi qua helper có kiểm tra kiểu, không parse trực tiếp ở service/deps.

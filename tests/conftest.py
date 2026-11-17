@@ -25,6 +25,8 @@ USER_PAYLOAD = {
     "password": "secret12345",
 }
 
+WORKSPACES_URL = "/api/v1/workspaces"
+
 
 @pytest.fixture
 async def engine() -> AsyncIterator[AsyncEngine]:
@@ -72,9 +74,72 @@ async def login_user(client: AsyncClient, **overrides: Any) -> dict[str, Any]:
     return dict(response.json())
 
 
+async def login_headers(client: AsyncClient, email: str) -> dict[str, str]:
+    tokens = await login_user(client, email=email)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
 @pytest.fixture
 async def auth_headers(client: AsyncClient) -> dict[str, str]:
     """Đăng ký rồi đăng nhập, trả về header Authorization."""
     await register_user(client)
     tokens = await login_user(client)
     return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+@pytest.fixture
+async def other_user(client: AsyncClient) -> dict[str, Any]:
+    """User thứ hai đã đăng ký, dùng khi chỉ cần user tồn tại (ví dụ để mời vào workspace)."""
+    return await register_user(client, email="other@example.com", full_name="Other")
+
+
+@pytest.fixture
+async def other_headers(client: AsyncClient, other_user: dict[str, Any]) -> dict[str, str]:
+    """Header của user thứ hai, dùng để kiểm tra phân quyền."""
+    return await login_headers(client, "other@example.com")
+
+
+async def create_workspace(
+    client: AsyncClient, headers: dict[str, str], name: str = "Team"
+) -> dict[str, Any]:
+    response = await client.post(WORKSPACES_URL, json={"name": name}, headers=headers)
+    assert response.status_code == 201, response.text
+    return dict(response.json())
+
+
+async def create_project(
+    client: AsyncClient, headers: dict[str, str], workspace_id: str, name: str = "Backlog"
+) -> dict[str, Any]:
+    response = await client.post(
+        f"{WORKSPACES_URL}/{workspace_id}/projects", json={"name": name}, headers=headers
+    )
+    assert response.status_code == 201, response.text
+    return dict(response.json())
+
+
+async def invite_member(
+    client: AsyncClient,
+    headers: dict[str, str],
+    workspace_id: str,
+    email: str,
+    role: str = "VIEWER",
+) -> dict[str, Any]:
+    response = await client.post(
+        f"{WORKSPACES_URL}/{workspace_id}/members",
+        json={"email": email, "role": role},
+        headers=headers,
+    )
+    assert response.status_code == 201, response.text
+    return dict(response.json())
+
+
+@pytest.fixture
+async def workspace(client: AsyncClient, auth_headers: dict[str, str]) -> dict[str, Any]:
+    return await create_workspace(client, auth_headers)
+
+
+@pytest.fixture
+async def project(
+    client: AsyncClient, auth_headers: dict[str, str], workspace: dict[str, Any]
+) -> dict[str, Any]:
+    return await create_project(client, auth_headers, workspace["id"])

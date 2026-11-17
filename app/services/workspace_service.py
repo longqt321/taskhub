@@ -16,7 +16,7 @@ from app.models.workspace import Workspace, WorkspaceMember, WorkspaceRole
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.schemas.workspace import MemberInvite, MemberRoleUpdate, WorkspaceCreate, WorkspaceUpdate
-from app.services.access import require_workspace
+from app.services.access import load_workspace, require_workspace
 
 
 class WorkspaceService:
@@ -36,15 +36,10 @@ class WorkspaceService:
         return workspaces, total
 
     async def get(self, user: User, workspace_id: UUID) -> Workspace:
-        await require_workspace(self._workspaces, workspace_id, user, WorkspaceRole.VIEWER)
-        workspace = await self._workspaces.get(workspace_id)
-        if workspace is None:  # pragma: no cover - require_workspace đã chặn trước đó
-            raise NotFoundError()
-        return workspace
+        return await load_workspace(self._workspaces, workspace_id, user, WorkspaceRole.VIEWER)
 
     async def update(self, user: User, workspace_id: UUID, data: WorkspaceUpdate) -> Workspace:
-        await require_workspace(self._workspaces, workspace_id, user, WorkspaceRole.OWNER)
-        workspace = await self.get(user, workspace_id)
+        workspace = await load_workspace(self._workspaces, workspace_id, user, WorkspaceRole.OWNER)
         for field, value in data.model_dump(exclude_unset=True).items():
             setattr(workspace, field, value)
         return await self._workspaces.update(workspace)
@@ -82,7 +77,6 @@ class WorkspaceService:
         if member.role is WorkspaceRole.OWNER:
             raise BadRequestError(MSG_OWNER_CANNOT_BE_REMOVED)
         await self._workspaces.update_member_role(member, data.role)
-        member.role = data.role
         return member
 
     async def remove_member(self, user: User, workspace_id: UUID, member_user_id: UUID) -> None:

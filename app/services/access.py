@@ -15,7 +15,7 @@ from app.core.messages import (
 )
 from app.models.project import Project
 from app.models.user import User, UserRole
-from app.models.workspace import WorkspaceMember, WorkspaceRole
+from app.models.workspace import Workspace, WorkspaceRole
 from app.repositories.project_repository import ProjectRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 
@@ -26,29 +26,36 @@ _ROLE_RANK: dict[WorkspaceRole, int] = {
 }
 
 
-async def require_workspace(
+async def load_workspace(
     workspaces: WorkspaceRepository,
     workspace_id: UUID,
     user: User,
     minimum: WorkspaceRole,
-) -> WorkspaceMember | None:
-    """Kiểm tra user có role tối thiểu trong workspace.
-
-    Trả về membership, hoặc None nếu là ADMIN hệ thống.
-    """
+) -> Workspace:
+    """Lấy workspace và kiểm tra user có role tối thiểu trong đó."""
     workspace = await workspaces.get(workspace_id)
     if workspace is None:
         raise NotFoundError(MSG_WORKSPACE_NOT_FOUND, details={"workspace_id": str(workspace_id)})
 
     if user.role is UserRole.ADMIN:
-        return None
+        return workspace
 
     member = await workspaces.get_member(workspace_id, user.id)
     if member is None:
         raise ForbiddenError(MSG_NOT_WORKSPACE_MEMBER)
     if _ROLE_RANK[member.role] < _ROLE_RANK[minimum]:
         raise ForbiddenError(MSG_INSUFFICIENT_ROLE)
-    return member
+    return workspace
+
+
+async def require_workspace(
+    workspaces: WorkspaceRepository,
+    workspace_id: UUID,
+    user: User,
+    minimum: WorkspaceRole,
+) -> None:
+    """Chỉ kiểm tra quyền, không cần dùng lại workspace."""
+    await load_workspace(workspaces, workspace_id, user, minimum)
 
 
 async def require_project(

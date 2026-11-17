@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import Field, model_validator
 
 from app.core.constants import MAX_DESCRIPTION_LENGTH, MAX_NAME_LENGTH
-from app.core.messages import MSG_NAME_CANNOT_BE_NULL
+from app.core.messages import MSG_NAME_CANNOT_BE_NULL, MSG_STATUS_CANNOT_BE_NULL
 from app.models.project import ProjectStatus
 from app.schemas.base import BaseSchema
 
@@ -27,7 +27,7 @@ class ProjectUpdate(BaseSchema):
         if "name" in self.model_fields_set and self.name is None:
             raise ValueError(MSG_NAME_CANNOT_BE_NULL)
         if "status" in self.model_fields_set and self.status is None:
-            raise ValueError("status cannot be null")
+            raise ValueError(MSG_STATUS_CANNOT_BE_NULL)
         return self
 
 

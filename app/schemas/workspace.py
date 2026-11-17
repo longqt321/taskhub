@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import EmailStr, Field, model_validator
 
 from app.core.constants import MAX_NAME_LENGTH
-from app.core.messages import MSG_NAME_CANNOT_BE_NULL
+from app.core.messages import MSG_NAME_CANNOT_BE_NULL, MSG_OWNER_ROLE_RESERVED
 from app.models.user import UserRole
 from app.models.workspace import WorkspaceRole
 from app.schemas.base import BaseSchema
@@ -41,7 +41,7 @@ class MemberInvite(BaseSchema):
     def _reject_owner_role(self) -> MemberInvite:
         # OWNER chỉ có một, là người tạo workspace, không mời bằng endpoint này.
         if self.role is WorkspaceRole.OWNER:
-            raise ValueError("role OWNER is set automatically for the workspace creator")
+            raise ValueError(MSG_OWNER_ROLE_RESERVED)
         return self
 
 

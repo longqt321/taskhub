@@ -23,5 +23,13 @@ def unauthorized(description: str) -> Responses:
     return {401: {"model": ErrorResponse, "description": description}}
 
 
+def bad_request(description: str) -> Responses:
+    return {400: {"model": ErrorResponse, "description": description}}
+
+
+def forbidden(description: str) -> Responses:
+    return {403: {"model": ErrorResponse, "description": description}}
+
+
 def conflict(description: str) -> Responses:
     return {409: {"model": ErrorResponse, "description": description}}

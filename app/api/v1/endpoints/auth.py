@@ -16,15 +16,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     responses={**conflict("Email already registered"), **VALIDATION_ERROR},
 )
 async def register(payload: UserCreate, service: AuthServiceDep) -> UserRead:
-    user = await service.register(payload)
-    return UserRead(
-        id=user.id,
-        email=user.email,
-        full_name=user.full_name,
-        role=user.role.value,
-        is_active=user.is_active,
-        created_at=user.created_at,
-    )
+    return UserRead.model_validate(await service.register(payload))
 
 
 @router.post(

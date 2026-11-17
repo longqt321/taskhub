@@ -6,6 +6,8 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.core.constants import MIN_SECRET_KEY_BYTES
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
@@ -25,7 +27,7 @@ class Settings(BaseSettings):
     # Bắt buộc khai báo trong .env, không đặt default để khỏi lỡ trỏ nhầm DB.
     database_url: str
 
-    # JWT. secret_key phải đủ dài (>= 32 bytes) cho HS256.
+    # JWT. secret_key phải đủ dài cho HS256, lấy giới hạn từ constants.
     secret_key: str
     jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
     access_token_expire_minutes: int = Field(default=30, ge=1)
@@ -34,8 +36,8 @@ class Settings(BaseSettings):
     @field_validator("secret_key")
     @classmethod
     def _check_secret_key(cls, value: str) -> str:
-        if len(value.encode()) < 32:
-            raise ValueError("secret_key phải dài ít nhất 32 bytes")
+        if len(value.encode()) < MIN_SECRET_KEY_BYTES:
+            raise ValueError(f"secret_key phải dài ít nhất {MIN_SECRET_KEY_BYTES} bytes")
         return value
 
     @field_validator("api_v1_prefix")

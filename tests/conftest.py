@@ -11,11 +11,13 @@ from typing import Any
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.database import create_engine, create_session_factory
 from app.main import app
 from app.models import Base
+from app.models.user import User, UserRole
 
 TEST_URL = os.environ["DATABASE_URL"]
 
@@ -28,7 +30,8 @@ USER_PAYLOAD = {
 
 @pytest.fixture
 async def engine() -> AsyncIterator[AsyncEngine]:
-    test_engine = create_engine(TEST_URL)
+    # echo=False để log test khỏi bị đầy bởi SQL
+    test_engine = create_engine(TEST_URL, echo=False)
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield test_engine
@@ -78,3 +81,35 @@ async def auth_headers(client: AsyncClient) -> dict[str, str]:
     await register_user(client)
     tokens = await login_user(client)
     return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+async def login_headers(client: AsyncClient, email: str) -> dict[str, str]:
+    tokens = await login_user(client, email=email)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+async def promote_to_admin(session_factory: async_sessionmaker[AsyncSession], email: str) -> None:
+    """Đổi role trực tiếp trong DB, vì register không cho client tự chọn role."""
+    async with session_factory() as session:
+        await session.execute(update(User).where(User.email == email).values(role=UserRole.ADMIN))
+        await session.commit()
+
+
+@pytest.fixture
+async def other_user(client: AsyncClient) -> dict[str, Any]:
+    """User thứ hai, role MEMBER."""
+    return await register_user(client, email="other@example.com", full_name="Other")
+
+
+@pytest.fixture
+async def other_headers(client: AsyncClient, other_user: dict[str, Any]) -> dict[str, str]:
+    return await login_headers(client, "other@example.com")
+
+
+@pytest.fixture
+async def admin_headers(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+) -> dict[str, str]:
+    await register_user(client, email="admin@example.com", full_name="Admin")
+    await promote_to_admin(session_factory, "admin@example.com")
+    return await login_headers(client, "admin@example.com")

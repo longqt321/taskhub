@@ -1,6 +1,8 @@
 """Các dependency dùng chung trong router."""
 
+from datetime import datetime
 from typing import Annotated
+from uuid import UUID
 
 import jwt
 from fastapi import Depends, Query
@@ -13,12 +15,17 @@ from app.core.database import get_session
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.pagination import PaginationParams
 from app.core.security import TokenType, decode_token, subject_from_payload
+from app.models.task import TaskPriority, TaskStatus
 from app.models.user import User, UserRole
+from app.repositories.comment_repository import CommentRepository
+from app.repositories.label_repository import LabelRepository
 from app.repositories.project_repository import ProjectRepository
-from app.repositories.task_repository import TaskRepository
+from app.repositories.task_repository import TaskFilters, TaskRepository
 from app.repositories.user_repository import RefreshTokenRepository, UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.auth_service import AuthService, UserService
+from app.services.comment_service import CommentService
+from app.services.label_service import LabelService
 from app.services.project_service import ProjectService
 from app.services.task_service import TaskService
 from app.services.workspace_service import WorkspaceService
@@ -55,6 +62,18 @@ def get_task_repository(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> TaskRepository:
     return TaskRepository(session)
+
+
+def get_label_repository(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> LabelRepository:
+    return LabelRepository(session)
+
+
+def get_comment_repository(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> CommentRepository:
+    return CommentRepository(session)
 
 
 def get_auth_service(
@@ -109,6 +128,30 @@ def get_task_service(
 TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 
 
+def get_label_service(
+    labels: Annotated[LabelRepository, Depends(get_label_repository)],
+    projects: Annotated[ProjectRepository, Depends(get_project_repository)],
+    tasks: Annotated[TaskRepository, Depends(get_task_repository)],
+    workspaces: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
+) -> LabelService:
+    return LabelService(labels, projects, tasks, workspaces)
+
+
+LabelServiceDep = Annotated[LabelService, Depends(get_label_service)]
+
+
+def get_comment_service(
+    comments: Annotated[CommentRepository, Depends(get_comment_repository)],
+    tasks: Annotated[TaskRepository, Depends(get_task_repository)],
+    projects: Annotated[ProjectRepository, Depends(get_project_repository)],
+    workspaces: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
+) -> CommentService:
+    return CommentService(comments, tasks, projects, workspaces)
+
+
+CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]
+
+
 async def get_current_user(
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     users: Annotated[UserRepository, Depends(get_user_repository)],
@@ -152,6 +195,27 @@ class RequireRoles:
         if user.role != UserRole.ADMIN and user.role not in self.roles:
             raise ForbiddenError()
         return user
+
+
+def get_task_filters(
+    assignee_id: Annotated[UUID | None, Query(description="Lọc theo người được giao")] = None,
+    status: Annotated[TaskStatus | None, Query(description="Lọc theo trạng thái")] = None,
+    priority: Annotated[TaskPriority | None, Query(description="Lọc theo độ ưu tiên")] = None,
+    due_before: Annotated[datetime | None, Query(description="Hạn chót trước mốc này")] = None,
+    due_after: Annotated[datetime | None, Query(description="Hạn chót sau mốc này")] = None,
+    search: Annotated[str | None, Query(max_length=100, description="Tìm trong tiêu đề")] = None,
+) -> TaskFilters:
+    return TaskFilters(
+        assignee_id=assignee_id,
+        status=status,
+        priority=priority,
+        due_before=due_before,
+        due_after=due_after,
+        search=search,
+    )
+
+
+TaskFiltersDep = Annotated[TaskFilters, Depends(get_task_filters)]
 
 
 def get_pagination_params(

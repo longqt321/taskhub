@@ -38,6 +38,16 @@ MSG_MEMBER_ALREADY_EXISTS = "User is already a member of this workspace"
 MSG_OWNER_ROLE_RESERVED = "Workspace owner role cannot be assigned"
 MSG_OWNER_CANNOT_BE_REMOVED = "Workspace owner cannot be removed or have their role changed"
 
+# Label và comment
+MSG_LABEL_NOT_FOUND = "Label not found"
+MSG_LABEL_ALREADY_EXISTS = "Label name already exists in this project"
+MSG_LABEL_NOT_IN_PROJECT = "Label does not belong to the task's project"
+MSG_LABEL_ALREADY_ATTACHED = "Label is already attached to this task"
+MSG_LABEL_NOT_ATTACHED = "Label is not attached to this task"
+MSG_COMMENT_NOT_FOUND = "Comment not found"
+MSG_COMMENT_DELETE_FORBIDDEN = "Only the author or the workspace owner can delete this comment"
+MSG_COMMENT_CANNOT_BE_EMPTY = "content cannot be empty"
+
 # User và auth
 MSG_USER_NOT_FOUND = "User not found"
 MSG_FULL_NAME_CANNOT_BE_NULL = "full_name cannot be null"

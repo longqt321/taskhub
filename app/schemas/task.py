@@ -13,6 +13,7 @@ from app.core.messages import (
 )
 from app.models.task import TaskPriority, TaskStatus
 from app.schemas.base import BaseSchema
+from app.schemas.label import LabelRead
 
 
 class TaskCreate(BaseSchema):
@@ -55,5 +56,6 @@ class TaskRead(BaseSchema):
     status: TaskStatus
     priority: TaskPriority
     due_date: datetime | None
+    labels: list[LabelRead] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime

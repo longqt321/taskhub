@@ -1,6 +1,6 @@
 # TaskHub
 
-API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 5: có workspace, project, label, comment, phân quyền OWNER/EDITOR/VIEWER theo workspace, task gắn với project và lọc được theo nhiều tiêu chí.
+API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 6: thêm Redis cache cho danh sách task theo project và background task gửi thông báo khi assign task.
 
 ## Chạy
 
@@ -91,6 +91,12 @@ Quy ước:
 - Gắn/bỏ label bằng `PUT`/`DELETE /tasks/{task_id}/labels/{label_id}`. Label phải cùng project với task, gắn hai lần trả 409.
 - Comment thuộc một task. Ai đọc được task thì đọc và viết comment được; xoá comment thì tác giả hoặc OWNER workspace, ADMIN đi qua.
 - `GET /tasks` nhận thêm `assignee_id`, `status`, `priority`, `due_before`, `due_after`, `search` (tìm trong tiêu đề). Các điều kiện ghép bằng AND, giá trị enum sai trả 422.
+
+## Cache và background task
+
+- `GET /tasks?project_id=...` kiểm tra quyền trước rồi đọc/ghi Redis theo từng trang và bộ lọc (`CACHE_TTL_SECONDS`, mặc định 60 giây). Nếu không cấu hình `REDIS_URL` hoặc Redis lỗi, app tự bỏ qua cache để không ảnh hưởng luồng chính.
+- Cache của project bị xoá ngay khi tạo/sửa/xoá task hoặc sửa/xoá/gắn/bỏ label trong project đó.
+- Khi tạo task có `assignee_id` hoặc cập nhật đổi sang người nhận mới, `BackgroundTasks` chạy `send_task_assigned_email` sau khi trả response.
 
 ## API
 

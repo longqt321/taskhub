@@ -456,3 +456,71 @@ async def test_unexpected_error_returns_internal_error_envelope(
     error = response.json()["error"]
     assert error["code"] == "internal_error"
     assert error["message"] == "Internal server error"
+
+
+async def test_filter_by_status_and_priority(
+    client: AsyncClient, auth_headers: dict[str, str], project: dict[str, Any]
+) -> None:
+    await _create_task(client, auth_headers, project["id"], title="A", status="TODO")
+    await _create_task(
+        client, auth_headers, project["id"], title="B", status="DONE", priority="URGENT"
+    )
+
+    done = await client.get(
+        f"{TASKS_URL}?project_id={project['id']}&status=DONE", headers=auth_headers
+    )
+    urgent = await client.get(
+        f"{TASKS_URL}?project_id={project['id']}&priority=URGENT", headers=auth_headers
+    )
+
+    assert [item["title"] for item in done.json()["items"]] == ["B"]
+    assert [item["title"] for item in urgent.json()["items"]] == ["B"]
+
+
+async def test_filter_by_assignee(
+    client: AsyncClient,
+    auth_headers: dict[str, str],
+    project: dict[str, Any],
+) -> None:
+    me = await client.get("/api/v1/users/me", headers=auth_headers)
+    my_id = me.json()["id"]
+    await _create_task(client, auth_headers, project["id"], title="mine", assignee_id=my_id)
+    await _create_task(client, auth_headers, project["id"], title="nobody")
+
+    response = await client.get(
+        f"{TASKS_URL}?project_id={project['id']}&assignee_id={my_id}", headers=auth_headers
+    )
+
+    assert [item["title"] for item in response.json()["items"]] == ["mine"]
+
+
+async def test_filter_by_due_date_and_search(
+    client: AsyncClient, auth_headers: dict[str, str], project: dict[str, Any]
+) -> None:
+    await _create_task(
+        client, auth_headers, project["id"], title="Deploy release", due_date="2026-12-01T00:00:00Z"
+    )
+    await _create_task(
+        client, auth_headers, project["id"], title="Write docs", due_date="2027-06-01T00:00:00Z"
+    )
+
+    before = await client.get(
+        f"{TASKS_URL}?project_id={project['id']}&due_before=2026-12-31T00:00:00Z",
+        headers=auth_headers,
+    )
+    searched = await client.get(
+        f"{TASKS_URL}?project_id={project['id']}&search=docs", headers=auth_headers
+    )
+
+    assert [item["title"] for item in before.json()["items"]] == ["Deploy release"]
+    assert [item["title"] for item in searched.json()["items"]] == ["Write docs"]
+
+
+async def test_filter_rejects_invalid_enum(
+    client: AsyncClient, auth_headers: dict[str, str], project: dict[str, Any]
+) -> None:
+    response = await client.get(
+        f"{TASKS_URL}?project_id={project['id']}&status=KHONG_CO", headers=auth_headers
+    )
+
+    assert response.status_code == 422

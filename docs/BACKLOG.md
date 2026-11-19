@@ -2,12 +2,9 @@
 
 Những phần chưa làm, để dành các ngày sau.
 
-## Day 5-7
+## Day 6-7
 
-- Lọc task nâng cao theo assignee, status, priority, due_date
-- Label CRUD và gán/bỏ label cho task
-- Comment thêm/xoá trên task
-- Redis cache cho `GET /projects/{id}/tasks`, invalidate khi dữ liệu đổi
+- Redis cache cho `GET /tasks?project_id=...`, invalidate khi dữ liệu đổi
 - Background task gửi mail khi assign task
 - Swagger mô tả Bearer auth và error response đầy đủ
 - Dockerfile multi-stage, docker compose chạy cả stack

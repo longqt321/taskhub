@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     # Bắt buộc khai báo trong .env, không đặt default để khỏi lỡ trỏ nhầm DB.
     database_url: str
 
+    # Redis dùng để cache danh sách task theo project; bỏ trống thì tắt cache.
+    redis_url: str | None = None
+    cache_ttl_seconds: int = Field(default=60, ge=1)
+
     # JWT. secret_key phải đủ dài cho HS256, lấy giới hạn từ constants.
     secret_key: str
     jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"

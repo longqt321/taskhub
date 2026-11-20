@@ -3,6 +3,8 @@
 from collections.abc import Sequence
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.core.messages import (
     MSG_MEMBER_ALREADY_EXISTS,
@@ -58,12 +60,13 @@ class WorkspaceService:
         invited = await self._users.get_by_email(data.email)
         if invited is None:
             raise NotFoundError(MSG_USER_NOT_FOUND, details={"email": data.email})
-        if await self._workspaces.get_member(workspace_id, invited.id) is not None:
-            raise ConflictError(MSG_MEMBER_ALREADY_EXISTS, details={"email": data.email})
-
-        await self._workspaces.add_member(
-            WorkspaceMember(workspace_id=workspace_id, user_id=invited.id, role=data.role)
-        )
+        try:
+            await self._workspaces.add_member(
+                WorkspaceMember(workspace_id=workspace_id, user_id=invited.id, role=data.role)
+            )
+        except IntegrityError as exc:
+            await self._workspaces.rollback()
+            raise ConflictError(MSG_MEMBER_ALREADY_EXISTS, details={"email": data.email}) from exc
         member = await self._workspaces.get_member(workspace_id, invited.id)
         if member is None:  # pragma: no cover - vừa tạo nên luôn có
             raise NotFoundError(MSG_MEMBER_NOT_FOUND)

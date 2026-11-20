@@ -38,7 +38,7 @@ class WorkspaceRepository(SqlAlchemyRepository[Workspace]):
         result = await self._session.scalars(
             select(Workspace)
             .where(Workspace.id.in_(membership))
-            .order_by(Workspace.created_at)
+            .order_by(Workspace.created_at, Workspace.id)
             .offset(offset)
             .limit(limit)
         )

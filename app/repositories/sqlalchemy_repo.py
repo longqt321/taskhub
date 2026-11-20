@@ -18,7 +18,7 @@ class SqlAlchemyRepository[T](BaseRepository[T]):
         self,
         session: AsyncSession,
         model: type[T],
-        order_by: InstrumentedAttribute[Any] | None = None,
+        *order_by: InstrumentedAttribute[Any],
     ) -> None:
         self._session = session
         self._model = model
@@ -30,19 +30,19 @@ class SqlAlchemyRepository[T](BaseRepository[T]):
     async def list(self, *, offset: int, limit: int) -> tuple[Sequence[T], int]:
         total = await self._session.scalar(select(func.count()).select_from(self._model))
         stmt = select(self._model)
-        if self._order_by is not None:
-            stmt = stmt.order_by(self._order_by)
+        if self._order_by:
+            stmt = stmt.order_by(*self._order_by)
         result = await self._session.scalars(stmt.offset(offset).limit(limit))
         return result.all(), total or 0
 
     async def add(self, entity: T) -> T:
         self._session.add(entity)
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(entity)
         return entity
 
     async def update(self, entity: T) -> T:
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(entity)
         return entity
 
@@ -51,5 +51,5 @@ class SqlAlchemyRepository[T](BaseRepository[T]):
         if entity is None:
             return False
         await self._session.delete(entity)
-        await self._session.commit()
+        await self._session.flush()
         return True

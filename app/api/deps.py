@@ -5,7 +5,7 @@ from typing import Annotated
 from fastapi import Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.constants import DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT
+from app.core.constants import DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT, MIN_LIMIT, MIN_PAGE
 from app.core.database import get_session
 from app.core.pagination import PaginationParams
 from app.models.task import TaskModel
@@ -17,7 +17,7 @@ from app.services.task_service import TaskService
 def get_task_repository(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> BaseRepository[TaskModel]:
-    return SqlAlchemyRepository(session, TaskModel, TaskModel.created_at)
+    return SqlAlchemyRepository(session, TaskModel, TaskModel.created_at, TaskModel.id)
 
 
 def get_task_service(
@@ -30,8 +30,10 @@ TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 
 
 def get_pagination_params(
-    page: Annotated[int, Query(ge=1, description="1-based page number")] = DEFAULT_PAGE,
-    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT, description="Tasks per page")] = DEFAULT_LIMIT,
+    page: Annotated[int, Query(ge=MIN_PAGE, description="1-based page number")] = DEFAULT_PAGE,
+    limit: Annotated[int, Query(ge=MIN_LIMIT, le=MAX_LIMIT, description="Tasks per page")] = (
+        DEFAULT_LIMIT
+    ),
 ) -> PaginationParams:
     return PaginationParams(page=page, limit=limit)
 

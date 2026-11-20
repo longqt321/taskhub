@@ -1,36 +1,41 @@
-"""Fixture dùng chung. Test chạy qua migration Alembic trên DB test, không đụng DB dev."""
+"""Fixture dùng chung. Test chạy trên database taskhub_test, không đụng DB dev."""
 
 import os
 
-from alembic import command
-from alembic.config import Config
-
+# Phải set trước khi import app để Settings đọc đúng
 os.environ.setdefault(
     "DATABASE_URL", "postgresql+asyncpg://taskhub:taskhub@localhost:5433/taskhub_test"
 )
+os.environ.setdefault("SECRET_KEY", "test-secret-key-must-be-at-least-32-bytes")
 
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import text
-from sqlalchemy.ext.asyncio import (
-    AsyncEngine,
-    AsyncSession,
-    async_sessionmaker,
-)
+from sqlalchemy import text, update
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.database import create_engine, create_session_factory
 from app.main import app
+from app.models.user import User, UserRole
 
 TEST_URL = os.environ["DATABASE_URL"]
+
+USER_PAYLOAD = {
+    "email": "intern@example.com",
+    "full_name": "Intern",
+    "password": "secret12345",
+}
+
+
 _ALEMBIC_CFG = Config("alembic.ini")
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _apply_migrations() -> Iterator[None]:
-    """Dựng schema bằng migration thật một lần cho cả phiên test."""
     command.downgrade(_ALEMBIC_CFG, "base")
     command.upgrade(_ALEMBIC_CFG, "head")
     try:
@@ -43,7 +48,9 @@ def _apply_migrations() -> Iterator[None]:
 async def engine() -> AsyncIterator[AsyncEngine]:
     test_engine = create_engine(TEST_URL, echo=False)
     async with test_engine.begin() as conn:
-        await conn.execute(text("TRUNCATE TABLE tasks RESTART IDENTITY CASCADE"))
+        await conn.execute(
+            text("TRUNCATE TABLE refresh_tokens, users, tasks RESTART IDENTITY CASCADE")
+        )
     yield test_engine
     await test_engine.dispose()
 
@@ -66,9 +73,58 @@ async def client(
         yield http_client
 
 
-async def create_sample_task(
-    client: AsyncClient, title: str = "Write tests", description: str | None = "day 2"
-) -> dict[str, Any]:
-    response = await client.post("/api/v1/tasks", json={"title": title, "description": description})
+async def register_user(client: AsyncClient, **overrides: Any) -> dict[str, Any]:
+    payload = {**USER_PAYLOAD, **overrides}
+    response = await client.post("/api/v1/auth/register", json=payload)
     assert response.status_code == 201, response.text
+    return payload
+
+
+async def login_user(client: AsyncClient, **overrides: Any) -> dict[str, Any]:
+    payload = {**USER_PAYLOAD, **overrides}
+    response = await client.post(
+        "/api/v1/auth/login",
+        json={"email": payload["email"], "password": payload["password"]},
+    )
+    assert response.status_code == 200, response.text
     return dict(response.json())
+
+
+@pytest.fixture
+async def auth_headers(client: AsyncClient) -> dict[str, str]:
+    """Đăng ký rồi đăng nhập, trả về header Authorization."""
+    await register_user(client)
+    tokens = await login_user(client)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+async def login_headers(client: AsyncClient, email: str) -> dict[str, str]:
+    tokens = await login_user(client, email=email)
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+async def promote_to_admin(session_factory: async_sessionmaker[AsyncSession], email: str) -> None:
+    """Đổi role trực tiếp trong DB, vì register không cho client tự chọn role."""
+    async with session_factory() as session:
+        await session.execute(update(User).where(User.email == email).values(role=UserRole.ADMIN))
+        await session.commit()
+
+
+@pytest.fixture
+async def other_user(client: AsyncClient) -> dict[str, Any]:
+    """User thứ hai, role MEMBER."""
+    return await register_user(client, email="other@example.com", full_name="Other")
+
+
+@pytest.fixture
+async def other_headers(client: AsyncClient, other_user: dict[str, Any]) -> dict[str, str]:
+    return await login_headers(client, "other@example.com")
+
+
+@pytest.fixture
+async def admin_headers(
+    client: AsyncClient, session_factory: async_sessionmaker[AsyncSession]
+) -> dict[str, str]:
+    await register_user(client, email="admin@example.com", full_name="Admin")
+    await promote_to_admin(session_factory, "admin@example.com")
+    return await login_headers(client, "admin@example.com")

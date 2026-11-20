@@ -1,6 +1,6 @@
 # TaskHub
 
-API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 2: có Postgres, SQLAlchemy async và Alembic, CRUD `tasks` lưu thật xuống DB.
+API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 3: có Postgres, SQLAlchemy async, Alembic, đăng ký/đăng nhập bằng JWT, refresh token xoay vòng và phân quyền theo role.
 
 ## Chạy
 
@@ -9,7 +9,7 @@ Cần uv (Python 3.14) và Docker.
 ```bash
 docker compose up -d          # postgres 16, host port 5433
 uv sync
-cp .env.example .env
+cp .env.example .env          # nhớ đổi SECRET_KEY
 uv run alembic upgrade head
 uv run uvicorn app.main:app --reload
 ```
@@ -26,7 +26,7 @@ uv run alembic upgrade head
 uv run alembic downgrade -1
 ```
 
-`migrations/env.py` lấy URL từ `app.core.config` nên không cần sửa `alembic.ini`.
+`migrations/env.py` lấy URL từ `app.core.config` và metadata từ `app.models` nên thêm model mới chỉ cần export trong `app/models/__init__.py`.
 
 ## Kiểm tra code
 
@@ -46,7 +46,7 @@ Test tạo bảng bằng metadata rồi drop sau mỗi test, không đụng DB d
 ```
 app/
 ├── main.py
-├── core/          # config, logging, exception, constants, messages, pagination, database, lifespan
+├── core/          # config, logging, exception, constants, messages, pagination, database, security, lifespan
 ├── api/           # router, dependency, endpoint
 ├── schemas/       # pydantic model
 ├── services/      # nghiệp vụ
@@ -65,18 +65,40 @@ Quy ước:
 - Giới hạn độ dài, phân trang nằm trong `app/core/constants.py`.
 - Schema kế thừa `BaseSchema` để tự strip khoảng trắng và đọc được từ ORM object.
 
+## Auth
+
+- Mật khẩu băm bằng argon2 (`pwdlib`), không lưu plaintext.
+- Access token 30 phút, refresh token 7 ngày. Refresh token lưu `jti` vào DB để thu hồi được.
+- `POST /auth/refresh` xoay vòng: thu hồi token cũ và ghi token mới trong cùng một transaction, revoke bằng `UPDATE ... WHERE revoked_at IS NULL RETURNING`. Dùng lại token đã revoke trả 401 và cắt luôn mọi session của user đó.
+- Đổi mật khẩu hoặc bị admin khoá tài khoản thì toàn bộ refresh token cũ mất giá trị.
+- Token có claim `type` (access/refresh), `jti`, `iat`; decode kiểm tra `type` nên refresh token không dùng được như access token. `sub` hỏng trả 401, không để 500.
+- `get_current_user` là chỗ duy nhất đọc Bearer token, kiểm tra user còn tồn tại và `is_active`. 401 luôn kèm header `WWW-Authenticate: Bearer`.
+- `RequireRoles(...)` kiểm tra role; ADMIN luôn được đi qua. Thiếu quyền trả 403.
+- Mật khẩu giới hạn 8 ký tự tối thiểu và 72 **byte** tối đa (giới hạn của bcrypt), không phải 72 ký tự.
+- Sửa/xoá user là thao tác của ADMIN: không tự xoá hay tự khoá chính mình, và luôn phải còn ít nhất một admin đang hoạt động.
+
 ## API
 
-| Method | Path |
-| --- | --- |
-| GET | `/api/v1/health` |
-| POST | `/api/v1/tasks` |
-| GET | `/api/v1/tasks?page=1&limit=20` |
-| GET | `/api/v1/tasks/{id}` |
-| PATCH | `/api/v1/tasks/{id}` |
-| DELETE | `/api/v1/tasks/{id}` |
+| Method | Path | Auth |
+| --- | --- | --- |
+| GET | `/api/v1/health` | không |
+| POST | `/api/v1/auth/register` | không |
+| POST | `/api/v1/auth/login` | không |
+| POST | `/api/v1/auth/refresh` | không |
+| POST | `/api/v1/auth/logout` | không |
+| GET | `/api/v1/users/me` | Bearer |
+| PATCH | `/api/v1/users/me` | Bearer |
+| GET | `/api/v1/users?page=1&limit=20` | Bearer + ADMIN |
+| GET | `/api/v1/users/{id}` | Bearer + ADMIN |
+| PATCH | `/api/v1/users/{id}` | Bearer + ADMIN |
+| DELETE | `/api/v1/users/{id}` | Bearer + ADMIN |
+| POST | `/api/v1/tasks` | Bearer |
+| GET | `/api/v1/tasks?page=1&limit=20` | Bearer |
+| GET | `/api/v1/tasks/{id}` | Bearer |
+| PATCH | `/api/v1/tasks/{id}` | Bearer |
+| DELETE | `/api/v1/tasks/{id}` | Bearer |
 
-Task có `title`, `description`, `status` (TODO / IN_PROGRESS / IN_REVIEW / DONE). `project_id`, `assignee_id`, `created_by` sẽ thêm ở Day 4 khi có workspace và auth.
+Task có `title`, `description`, `status` (TODO / IN_PROGRESS / IN_REVIEW / DONE). `project_id`, `assignee_id`, `created_by` sẽ thêm ở Day 4 khi có workspace.
 
 Lỗi trả về cùng một dạng:
 
@@ -90,7 +112,7 @@ Lỗi trả về cùng một dạng:
 }
 ```
 
-`code` có thể là `validation_error`, `not_found`, `conflict`, `bad_request`, `http_error`, `internal_error`.
+`code` có thể là `validation_error`, `unauthorized`, `forbidden`, `not_found`, `conflict`, `bad_request`, `http_error`, `internal_error`.
 
 ## Việc còn lại
 

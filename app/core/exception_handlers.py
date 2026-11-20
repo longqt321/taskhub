@@ -35,7 +35,11 @@ async def app_error_handler(request: Request, exc: Exception) -> JSONResponse:
     error = cast(AppError, exc)
     if error.status_code >= 500:
         logger.error("Application error: %s", error.message, exc_info=error)
-    return _error_response(error.status_code, error.code, error.message, error.details)
+    # 401 phải kèm WWW-Authenticate theo chuẩn HTTP
+    headers = {"WWW-Authenticate": "Bearer"} if error.status_code == 401 else None
+    return _error_response(
+        error.status_code, error.code, error.message, error.details, headers=headers
+    )
 
 
 async def validation_error_handler(request: Request, exc: Exception) -> JSONResponse:

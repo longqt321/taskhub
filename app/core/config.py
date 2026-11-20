@@ -3,10 +3,10 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.core.constants import DATABASE_SCHEME
+from app.core.constants import DATABASE_SCHEME, MIN_SECRET_KEY_BYTES
 from app.core.messages import MSG_INVALID_API_PREFIX, MSG_INVALID_DATABASE_URL
 
 
@@ -27,6 +27,19 @@ class Settings(BaseSettings):
 
     # Bắt buộc khai báo trong .env, không đặt default để khỏi lỡ trỏ nhầm DB.
     database_url: str
+
+    # JWT. secret_key phải đủ dài cho HS256, lấy giới hạn từ constants.
+    secret_key: str
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
+    access_token_expire_minutes: int = Field(default=30, ge=1)
+    refresh_token_expire_days: int = Field(default=7, ge=1)
+
+    @field_validator("secret_key")
+    @classmethod
+    def _check_secret_key(cls, value: str) -> str:
+        if len(value.encode()) < MIN_SECRET_KEY_BYTES:
+            raise ValueError(f"secret_key phải dài ít nhất {MIN_SECRET_KEY_BYTES} bytes")
+        return value
 
     @field_validator("api_v1_prefix")
     @classmethod

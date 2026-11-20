@@ -10,12 +10,39 @@ CODE_BAD_REQUEST = "bad_request"
 CODE_HTTP_ERROR = "http_error"
 CODE_INTERNAL_ERROR = "internal_error"
 
-# Message
+# Message chung
 MSG_VALIDATION_FAILED = "Request validation failed"
 MSG_INTERNAL_ERROR = "Internal server error"
+MSG_HTTP_ERROR = "Request could not be handled"
+MSG_DEFAULT_BAD_REQUEST = "Bad request"
+MSG_DEFAULT_NOT_FOUND = "Resource not found"
+MSG_DEFAULT_CONFLICT = "Resource conflict"
+MSG_NOT_AUTHENTICATED = "Not authenticated"
+MSG_INSUFFICIENT_PERMISSIONS = "Insufficient permissions"
+
+# Task
 MSG_TASK_NOT_FOUND = "Task not found"
 MSG_TITLE_CANNOT_BE_NULL = "title cannot be null"
 MSG_STATUS_CANNOT_BE_NULL = "status cannot be null"
+
+# User và auth
+MSG_FULL_NAME_CANNOT_BE_NULL = "full_name cannot be null"
+MSG_EMAIL_ALREADY_REGISTERED = "Email already registered"
+MSG_INCORRECT_CREDENTIALS = "Incorrect email or password"
+MSG_INACTIVE_USER = "Account is disabled"
+MSG_INVALID_TOKEN = "Invalid or expired token"
+MSG_INVALID_REFRESH_TOKEN = "Invalid refresh token"
+MSG_USER_NOT_FOUND = "User not found"
+MSG_INCORRECT_CURRENT_PASSWORD = "Incorrect current password"
+MSG_CURRENT_PASSWORD_REQUIRED = "current_password là bắt buộc khi đổi password"
+MSG_CURRENT_PASSWORD_WITHOUT_PASSWORD = "current_password chỉ có nghĩa khi đổi password"
+MSG_PASSWORD_TOO_LONG = "password không được vượt quá {max_bytes} byte"
+
+# Thao tác admin trên user
+MSG_ADMIN_REQUIRED = "Chỉ admin mới được thực hiện thao tác này"
+MSG_CANNOT_DELETE_SELF = "Không thể xoá hoặc khoá chính tài khoản đang đăng nhập"
+MSG_CANNOT_DEMOTE_SELF = "Không thể tự hạ quyền admin của chính mình"
+MSG_LAST_ADMIN = "Phải còn ít nhất một admin đang hoạt động"
 
 MSG_INVALID_DATABASE_URL = "database_url phải dùng driver postgresql+asyncpg"
 MSG_INVALID_API_PREFIX = "api_v1_prefix phải bắt đầu bằng '/'"

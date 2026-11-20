@@ -53,3 +53,7 @@ class SqlAlchemyRepository[T](BaseRepository[T]):
         await self._session.delete(entity)
         await self._session.flush()
         return True
+
+    async def rollback(self) -> None:
+        """Bỏ transaction đang dở, dùng khi ghi bị vi phạm ràng buộc."""
+        await self._session.rollback()

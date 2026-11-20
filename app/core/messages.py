@@ -37,6 +37,8 @@ MSG_INSUFFICIENT_ROLE = "Your workspace role does not allow this action"
 MSG_MEMBER_ALREADY_EXISTS = "User is already a member of this workspace"
 MSG_OWNER_ROLE_RESERVED = "Workspace owner role cannot be assigned"
 MSG_OWNER_CANNOT_BE_REMOVED = "Workspace owner cannot be removed or have their role changed"
+MSG_PROJECT_ARCHIVED = "Archived project cannot be modified"
+MSG_ASSIGNEE_NOT_IN_WORKSPACE = "Assignee must be a member of the workspace"
 
 # User và auth
 MSG_USER_NOT_FOUND = "User not found"

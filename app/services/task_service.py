@@ -3,8 +3,12 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from app.core.exceptions import NotFoundError
-from app.core.messages import MSG_ASSIGNEE_NOT_FOUND, MSG_TASK_NOT_FOUND
+from app.core.exceptions import BadRequestError, NotFoundError
+from app.core.messages import (
+    MSG_ASSIGNEE_NOT_FOUND,
+    MSG_ASSIGNEE_NOT_IN_WORKSPACE,
+    MSG_TASK_NOT_FOUND,
+)
 from app.core.pagination import PaginationParams
 from app.models.task import TaskModel
 from app.models.user import User, UserRole
@@ -35,10 +39,15 @@ class TaskService:
         self._users = users
 
     async def create(self, user: User, data: TaskCreate) -> TaskModel:
-        await require_project(
-            self._projects, self._workspaces, data.project_id, user, WorkspaceRole.EDITOR
+        project = await require_project(
+            self._projects,
+            self._workspaces,
+            data.project_id,
+            user,
+            WorkspaceRole.EDITOR,
+            allow_archived=False,
         )
-        await self._check_assignee(data.assignee_id)
+        await self._check_assignee(project.workspace_id, data.assignee_id)
         task = TaskModel(
             project_id=data.project_id,
             title=data.title,
@@ -81,12 +90,17 @@ class TaskService:
 
     async def update(self, user: User, task_id: UUID, data: TaskUpdate) -> TaskModel:
         task = await self._get_task(task_id)
-        await require_project(
-            self._projects, self._workspaces, task.project_id, user, WorkspaceRole.EDITOR
+        project = await require_project(
+            self._projects,
+            self._workspaces,
+            task.project_id,
+            user,
+            WorkspaceRole.EDITOR,
+            allow_archived=False,
         )
         changes = data.model_dump(exclude_unset=True)
         if "assignee_id" in changes:
-            await self._check_assignee(changes["assignee_id"])
+            await self._check_assignee(project.workspace_id, changes["assignee_id"])
         for field, value in changes.items():
             setattr(task, field, value)
         return await self._tasks.update(task)
@@ -94,7 +108,12 @@ class TaskService:
     async def delete(self, user: User, task_id: UUID) -> None:
         task = await self._get_task(task_id)
         await require_project(
-            self._projects, self._workspaces, task.project_id, user, WorkspaceRole.EDITOR
+            self._projects,
+            self._workspaces,
+            task.project_id,
+            user,
+            WorkspaceRole.EDITOR,
+            allow_archived=False,
         )
         await self._tasks.delete(task_id)
 
@@ -104,8 +123,12 @@ class TaskService:
             raise _not_found(task_id)
         return task
 
-    async def _check_assignee(self, assignee_id: UUID | None) -> None:
+    async def _check_assignee(self, workspace_id: UUID, assignee_id: UUID | None) -> None:
         if assignee_id is None:
             return
         if await self._users.get(assignee_id) is None:
             raise NotFoundError(MSG_ASSIGNEE_NOT_FOUND, details={"assignee_id": str(assignee_id)})
+        if await self._workspaces.get_member(workspace_id, assignee_id) is None:
+            raise BadRequestError(
+                MSG_ASSIGNEE_NOT_IN_WORKSPACE, details={"assignee_id": str(assignee_id)}
+            )

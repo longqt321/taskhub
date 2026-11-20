@@ -11,13 +11,14 @@ from app.core import messages
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError, UnauthorizedError
 from app.core.pagination import PaginationParams
 from app.core.security import (
+    DUMMY_HASH,
     TokenType,
     create_access_token,
     create_refresh_token,
     decode_token,
-    hash_password,
+    hash_password_async,
     subject_from_payload,
-    verify_password,
+    verify_password_async,
 )
 from app.models.user import RefreshToken, User, UserRole
 from app.repositories.user_repository import RefreshTokenRepository, UserRepository
@@ -50,7 +51,7 @@ class AuthService:
         user = User(
             email=data.email,
             full_name=data.full_name,
-            hashed_password=hash_password(data.password),
+            hashed_password=await hash_password_async(data.password),
         )
         try:
             return await self._users.add(user)
@@ -63,7 +64,10 @@ class AuthService:
 
     async def login(self, data: LoginRequest) -> tuple[str, str]:
         user = await self._users.get_by_email(data.email)
-        if user is None or not verify_password(data.password, user.hashed_password):
+        # luôn verify với dummy hash khi không tìm thấy user để tránh lộ email qua timing
+        hashed = user.hashed_password if user is not None else DUMMY_HASH
+        valid = await verify_password_async(data.password, hashed)
+        if user is None or not valid:
             raise UnauthorizedError(messages.MSG_INCORRECT_CREDENTIALS)
         # mật khẩu đúng nhưng tài khoản bị khoá thì báo đúng lý do
         if not user.is_active:
@@ -94,7 +98,7 @@ class AuthService:
         # được nghĩa là token đã bị dùng trước đó, coi như bị lộ và cắt hết session.
         if not await self._refresh_tokens.rotate(payload["jti"], new_record):
             # rotate() rollback sẽ expire mọi ORM object, nên dùng user_id đã parse từ token
-            await self._refresh_tokens.revoke_all_for_user(user_id)
+            await self._refresh_tokens.revoke_all_for_user(user_id, commit=True)
             raise UnauthorizedError(messages.MSG_INVALID_REFRESH_TOKEN)
         return access, refresh
 
@@ -127,9 +131,9 @@ class UserService:
     async def update(self, user: User, data: UserUpdate) -> User:
         changes = data.model_dump(exclude_unset=True)
         if "password" in changes:
-            if not verify_password(changes["current_password"], user.hashed_password):
+            if not await verify_password_async(changes["current_password"], user.hashed_password):
                 raise UnauthorizedError(messages.MSG_INCORRECT_CURRENT_PASSWORD)
-            user.hashed_password = hash_password(changes["password"])
+            user.hashed_password = await hash_password_async(changes["password"])
         if "full_name" in changes:
             user.full_name = changes["full_name"]
         updated = await self._users.update(user)

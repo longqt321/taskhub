@@ -48,9 +48,7 @@ class RefreshTokenRepository(SqlAlchemyRepository[RefreshToken]):
         return result.scalar_one_or_none() is not None
 
     async def revoke(self, jti: str) -> bool:
-        revoked = await self._revoke_uncommitted(jti)
-        await self._session.commit()
-        return revoked
+        return await self._revoke_uncommitted(jti)
 
     async def rotate(self, old_jti: str, new_token: RefreshToken) -> bool:
         """Thu hồi token cũ và ghi token mới trong cùng một transaction."""
@@ -58,13 +56,14 @@ class RefreshTokenRepository(SqlAlchemyRepository[RefreshToken]):
             await self._session.rollback()
             return False
         self._session.add(new_token)
-        await self._session.commit()
+        await self._session.flush()
         return True
 
-    async def revoke_all_for_user(self, user_id: UUID) -> None:
+    async def revoke_all_for_user(self, user_id: UUID, *, commit: bool = False) -> None:
         await self._session.execute(
             update(RefreshToken)
             .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
             .values(revoked_at=datetime.now(UTC))
         )
-        await self._session.commit()
+        if commit:
+            await self._session.commit()

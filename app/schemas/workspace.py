@@ -1,6 +1,7 @@
 """Schema request/response của workspace và thành viên."""
 
 from datetime import datetime
+from typing import Literal
 from uuid import UUID
 
 from pydantic import EmailStr, Field, model_validator
@@ -46,7 +47,7 @@ class MemberInvite(BaseSchema):
 
 
 class MemberRoleUpdate(BaseSchema):
-    role: WorkspaceRole
+    role: Literal[WorkspaceRole.EDITOR, WorkspaceRole.VIEWER]
 
 
 class MemberUserRead(BaseSchema):

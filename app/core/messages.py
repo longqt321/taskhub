@@ -59,3 +59,6 @@ MSG_ADMIN_REQUIRED = "Chỉ admin mới được thực hiện thao tác này"
 MSG_CANNOT_DELETE_SELF = "Không thể xoá hoặc khoá chính tài khoản đang đăng nhập"
 MSG_CANNOT_DEMOTE_SELF = "Không thể tự hạ quyền admin của chính mình"
 MSG_LAST_ADMIN = "Phải còn ít nhất một admin đang hoạt động"
+
+MSG_INVALID_DATABASE_URL = "database_url phải dùng driver postgresql+asyncpg"
+MSG_INVALID_API_PREFIX = "api_v1_prefix phải bắt đầu bằng '/'"

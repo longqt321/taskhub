@@ -4,6 +4,7 @@ from fastapi import APIRouter, status
 
 from app.api.deps import AuthServiceDep
 from app.api.responses import VALIDATION_ERROR, conflict, unauthorized
+from app.core import messages
 from app.schemas.user import LoginRequest, RefreshRequest, TokenResponse, UserCreate, UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])

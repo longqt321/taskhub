@@ -18,3 +18,5 @@ MAX_PASSWORD_BYTES = 72
 
 # HS256 cần khoá đủ dài, ngắn hơn thì coi như cấu hình sai
 MIN_SECRET_KEY_BYTES = 32
+
+DATABASE_SCHEME = "postgresql+asyncpg://"

@@ -12,6 +12,7 @@ from app.api.responses import (
     forbidden,
     not_found,
 )
+from app.core import messages
 from app.models.user import User
 from app.schemas.common import Page
 from app.schemas.user import UserAdminUpdate, UserRead, UserUpdate
@@ -44,7 +45,7 @@ async def update_me(payload: UserUpdate, user: CurrentUser, service: UserService
 @router.get(
     "",
     summary="List users",
-    responses={**UNAUTHORIZED, **forbidden("Requires admin role")},
+    responses={**UNAUTHORIZED, **forbidden(messages.MSG_ADMIN_REQUIRED)},
 )
 async def list_users(
     pagination: PaginationDep, _: CurrentAdmin, service: UserServiceDep
@@ -63,8 +64,8 @@ async def list_users(
     summary="Get a user by id",
     responses={
         **UNAUTHORIZED,
-        **forbidden("Requires admin role"),
-        **not_found("User not found"),
+        **forbidden(messages.MSG_ADMIN_REQUIRED),
+        **not_found(messages.MSG_USER_NOT_FOUND),
     },
 )
 async def get_user(user_id: UUID, _: CurrentAdmin, service: UserServiceDep) -> UserRead:
@@ -76,8 +77,8 @@ async def get_user(user_id: UUID, _: CurrentAdmin, service: UserServiceDep) -> U
     summary="Update a user (change name or role, lock or unlock the account)",
     responses={
         **UNAUTHORIZED,
-        **forbidden("Requires admin role"),
-        **not_found("User not found"),
+        **forbidden(messages.MSG_ADMIN_REQUIRED),
+        **not_found(messages.MSG_USER_NOT_FOUND),
         **bad_request("Cannot lock yourself or remove the last active admin"),
         **VALIDATION_ERROR,
     },
@@ -94,8 +95,8 @@ async def admin_update_user(
     summary="Delete a user",
     responses={
         **UNAUTHORIZED,
-        **forbidden("Requires admin role"),
-        **not_found("User not found"),
+        **forbidden(messages.MSG_ADMIN_REQUIRED),
+        **not_found(messages.MSG_USER_NOT_FOUND),
         **bad_request("Cannot delete yourself or the last active admin"),
     },
 )

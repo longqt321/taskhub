@@ -5,11 +5,14 @@ from typing import Annotated
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, Query
+from fastapi import Depends, Query, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import messages
+from app.core.cache import TaskCache
+from app.core.config import get_settings
 from app.core.constants import (
     DEFAULT_LIMIT,
     DEFAULT_PAGE,
@@ -123,13 +126,22 @@ def get_project_service(
 ProjectServiceDep = Annotated[ProjectService, Depends(get_project_service)]
 
 
+def get_task_cache(request: Request) -> TaskCache:
+    redis_client: Redis | None = getattr(request.app.state, "redis", None)
+    return TaskCache(redis_client, ttl_seconds=get_settings().cache_ttl_seconds)
+
+
+TaskCacheDep = Annotated[TaskCache, Depends(get_task_cache)]
+
+
 def get_task_service(
     tasks: Annotated[TaskRepository, Depends(get_task_repository)],
     projects: Annotated[ProjectRepository, Depends(get_project_repository)],
     workspaces: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
     users: Annotated[UserRepository, Depends(get_user_repository)],
+    cache: TaskCacheDep,
 ) -> TaskService:
-    return TaskService(tasks, projects, workspaces, users)
+    return TaskService(tasks, projects, workspaces, users, cache)
 
 
 TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
@@ -140,8 +152,9 @@ def get_label_service(
     projects: Annotated[ProjectRepository, Depends(get_project_repository)],
     tasks: Annotated[TaskRepository, Depends(get_task_repository)],
     workspaces: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
+    cache: TaskCacheDep,
 ) -> LabelService:
-    return LabelService(labels, projects, tasks, workspaces)
+    return LabelService(labels, projects, tasks, workspaces, cache)
 
 
 LabelServiceDep = Annotated[LabelService, Depends(get_label_service)]

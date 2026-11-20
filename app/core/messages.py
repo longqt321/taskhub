@@ -70,8 +70,10 @@ MSG_CANNOT_DELETE_SELF = "Không thể xoá hoặc khoá chính tài khoản đa
 MSG_CANNOT_DEMOTE_SELF = "Không thể tự hạ quyền admin của chính mình"
 MSG_LAST_ADMIN = "Phải còn ít nhất một admin đang hoạt động"
 
-MSG_COLOR_CANNOT_BE_NULL = "color cannot be null"
-MSG_INVALID_DUE_RANGE = "due_after cannot be after due_before"
-
 MSG_INVALID_DATABASE_URL = "database_url phải dùng driver postgresql+asyncpg"
+
 MSG_INVALID_API_PREFIX = "api_v1_prefix phải bắt đầu bằng '/'"
+
+MSG_COLOR_CANNOT_BE_NULL = "color cannot be null"
+
+MSG_INVALID_DUE_RANGE = "due_after cannot be after due_before"

@@ -5,6 +5,7 @@ from uuid import UUID
 
 from sqlalchemy.exc import IntegrityError
 
+from app.core.cache import TaskCache
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.core.messages import (
     MSG_LABEL_ALREADY_EXISTS,
@@ -30,11 +31,13 @@ class LabelService:
         projects: ProjectRepository,
         tasks: TaskRepository,
         workspaces: WorkspaceRepository,
+        cache: TaskCache,
     ) -> None:
         self._labels = labels
         self._projects = projects
         self._tasks = tasks
         self._workspaces = workspaces
+        self._cache = cache
 
     async def create(self, user: User, project_id: UUID, data: LabelCreate) -> Label:
         await require_project(
@@ -74,7 +77,9 @@ class LabelService:
             raise ConflictError(MSG_LABEL_ALREADY_EXISTS, details={"name": new_name})
         for field, value in changes.items():
             setattr(label, field, value)
-        return await self._labels.update(label)
+        updated = await self._labels.update(label)
+        await self._invalidate(label.project_id)
+        return updated
 
     async def delete(self, user: User, label_id: UUID) -> None:
         label = await self._get_label(label_id)
@@ -82,6 +87,7 @@ class LabelService:
             self._projects, self._workspaces, label.project_id, user, WorkspaceRole.EDITOR
         )
         await self._labels.delete(label_id)
+        await self._invalidate(label.project_id)
 
     async def list_for_task(self, user: User, task_id: UUID) -> Sequence[Label]:
         await load_task(
@@ -104,16 +110,21 @@ class LabelService:
             raise BadRequestError(MSG_LABEL_NOT_IN_PROJECT, details={"label_id": str(label_id)})
         if not await self._labels.is_attached(task_id, label_id):
             await self._labels.attach(task_id, label_id)
+            await self._invalidate(task.project_id)
         return await self._labels.list_for_task(task_id)
 
     async def detach(self, user: User, task_id: UUID, label_id: UUID) -> Sequence[Label]:
-        await load_task(
+        task = await load_task(
             self._tasks, self._projects, self._workspaces, task_id, user, WorkspaceRole.EDITOR
         )
         if not await self._labels.is_attached(task_id, label_id):
             raise NotFoundError(MSG_LABEL_NOT_ATTACHED, details={"label_id": str(label_id)})
         await self._labels.detach(task_id, label_id)
+        await self._invalidate(task.project_id)
         return await self._labels.list_for_task(task_id)
+
+    async def _invalidate(self, project_id: UUID) -> None:
+        await self._cache.invalidate_project(project_id)
 
     async def _get_label(self, label_id: UUID) -> Label:
         label = await self._labels.get(label_id)

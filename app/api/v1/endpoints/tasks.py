@@ -65,8 +65,9 @@ async def list_tasks(
     if project_id is not None:
         # kiểm tra quyền trước khi đọc cache, tránh user ngoài lấy được dữ liệu đã cache
         await service.ensure_can_read_project(user, project_id)
-        cache_key = build_project_tasks_key(project_id, pagination, filters)
-        cached = await cache.get(cache_key)
+        version = await cache.get_version(project_id)
+        cache_key = build_project_tasks_key(project_id, version, pagination, filters)
+        cached = await cache.get(cache_key, project_id)
         if cached is not None:
             try:
                 return Page[TaskRead].model_validate_json(cached)
@@ -81,7 +82,7 @@ async def list_tasks(
             page=pagination.page,
             limit=pagination.limit,
         )
-        await cache.set(cache_key, page.model_dump_json())
+        await cache.set(cache_key, page.model_dump_json(), project_id)
         return page
 
     tasks, total = await service.list(user, pagination, filters, None)

@@ -46,10 +46,8 @@ async def test_project_tasks_cached_and_invalidated_on_create(
         headers=auth_headers,
     )
     assert created.status_code == 201
-    keys_after = [
-        key async for key in redis_client.scan_iter(match=f"tasks:project:{project['id']}:*")
-    ]
-    assert keys_after == []
+    ver = await redis_client.get(f"tasks:project:{project['id']}:ver")
+    assert ver == "1"
 
     second = await client.get(url, headers=auth_headers)
     assert second.status_code == 200

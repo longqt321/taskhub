@@ -13,7 +13,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core import messages
 from app.core.cache import TaskCache
 from app.core.config import get_settings
-from app.core.constants import DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT, MIN_LIMIT, MIN_PAGE
+from app.core.constants import (
+    DEFAULT_LIMIT,
+    DEFAULT_PAGE,
+    MAX_LIMIT,
+    MAX_SEARCH_LENGTH,
+    MIN_LIMIT,
+    MIN_PAGE,
+)
 from app.core.database import get_session
 from app.core.exceptions import BadRequestError, ForbiddenError, UnauthorizedError
 from app.core.pagination import PaginationParams

@@ -2,13 +2,6 @@
 
 Những phần chưa làm, để dành các ngày sau.
 
-## Day 2
-
-- SQLAlchemy 2.x async, model task thật, Alembic migration
-- Repository bản SQLAlchemy, bỏ `InMemoryRepository`
-- docker-compose chạy PostgreSQL trong container, không cài lên máy host
-- `DATABASE_URL` bắt buộc, không để default trong code
-
 ## Day 3-4
 
 - Auth: register, login, refresh, logout; JWT; hash password
@@ -26,3 +19,4 @@ Những phần chưa làm, để dành các ngày sau.
 ## Sau này
 
 - GitHub Actions chạy ruff + mypy + pytest
+- Test dùng transaction rollback thay vì tạo/drop bảng mỗi test

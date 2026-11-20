@@ -15,3 +15,7 @@ MSG_VALIDATION_FAILED = "Request validation failed"
 MSG_INTERNAL_ERROR = "Internal server error"
 MSG_TASK_NOT_FOUND = "Task not found"
 MSG_TITLE_CANNOT_BE_NULL = "title cannot be null"
+MSG_STATUS_CANNOT_BE_NULL = "status cannot be null"
+
+MSG_INVALID_DATABASE_URL = "database_url phải dùng driver postgresql+asyncpg"
+MSG_INVALID_API_PREFIX = "api_v1_prefix phải bắt đầu bằng '/'"

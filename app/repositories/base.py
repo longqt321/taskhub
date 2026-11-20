@@ -2,15 +2,10 @@
 
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Protocol
 from uuid import UUID
 
 
-class HasId(Protocol):
-    id: UUID
-
-
-class BaseRepository[T: HasId](ABC):
+class BaseRepository[T](ABC):
     @abstractmethod
     async def get(self, entity_id: UUID) -> T | None: ...
 

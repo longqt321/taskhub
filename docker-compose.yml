@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: taskhub-db
+    environment:
+      POSTGRES_USER: taskhub
+      POSTGRES_PASSWORD: taskhub
+      POSTGRES_DB: taskhub
+    ports:
+      # 5432 trên host đã bị Postgres của dự án khác chiếm, dùng 5433
+      - "5433:5432"
+    volumes:
+      - taskhub_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U taskhub -d taskhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  taskhub_pgdata:

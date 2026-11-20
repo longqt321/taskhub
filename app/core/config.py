@@ -6,7 +6,8 @@ from typing import Literal
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from app.core.constants import MIN_SECRET_KEY_BYTES
+from app.core.constants import DATABASE_SCHEME, MIN_SECRET_KEY_BYTES
+from app.core.messages import MSG_INVALID_API_PREFIX, MSG_INVALID_DATABASE_URL
 
 
 class Settings(BaseSettings):

@@ -33,14 +33,16 @@ MSG_INACTIVE_USER = "Account is disabled"
 MSG_INVALID_TOKEN = "Invalid or expired token"
 MSG_INVALID_REFRESH_TOKEN = "Invalid refresh token"
 MSG_USER_NOT_FOUND = "User not found"
-MSG_INACTIVE_USER_NOT_FOUND = "User not found or inactive"
 MSG_INCORRECT_CURRENT_PASSWORD = "Incorrect current password"
 MSG_CURRENT_PASSWORD_REQUIRED = "current_password là bắt buộc khi đổi password"
 MSG_CURRENT_PASSWORD_WITHOUT_PASSWORD = "current_password chỉ có nghĩa khi đổi password"
-MSG_PASSWORD_TOO_SHORT = "password phải có ít nhất {min_length} ký tự"
 MSG_PASSWORD_TOO_LONG = "password không được vượt quá {max_bytes} byte"
 
 # Thao tác admin trên user
 MSG_ADMIN_REQUIRED = "Chỉ admin mới được thực hiện thao tác này"
 MSG_CANNOT_DELETE_SELF = "Không thể xoá hoặc khoá chính tài khoản đang đăng nhập"
+MSG_CANNOT_DEMOTE_SELF = "Không thể tự hạ quyền admin của chính mình"
 MSG_LAST_ADMIN = "Phải còn ít nhất một admin đang hoạt động"
+
+MSG_INVALID_DATABASE_URL = "database_url phải dùng driver postgresql+asyncpg"
+MSG_INVALID_API_PREFIX = "api_v1_prefix phải bắt đầu bằng '/'"

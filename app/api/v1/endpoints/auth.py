@@ -4,6 +4,7 @@ from fastapi import APIRouter, status
 
 from app.api.deps import AuthServiceDep
 from app.api.responses import UNAUTHORIZED, VALIDATION_ERROR, conflict
+from app.core import messages
 from app.schemas.user import LoginRequest, RefreshRequest, TokenResponse, UserCreate, UserRead
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
     "/register",
     status_code=status.HTTP_201_CREATED,
     summary="Register a new user",
-    responses={**conflict("Email already registered"), **VALIDATION_ERROR},
+    responses={**conflict(messages.MSG_EMAIL_ALREADY_REGISTERED), **VALIDATION_ERROR},
 )
 async def register(payload: UserCreate, service: AuthServiceDep) -> UserRead:
     return UserRead.model_validate(await service.register(payload))
@@ -41,9 +42,9 @@ async def refresh(payload: RefreshRequest, service: AuthServiceDep) -> TokenResp
 
 @router.post(
     "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke a refresh token",
     responses=UNAUTHORIZED,
 )
-async def logout(payload: RefreshRequest, service: AuthServiceDep) -> dict[str, str]:
+async def logout(payload: RefreshRequest, service: AuthServiceDep) -> None:
     await service.logout(payload.refresh_token)
-    return {"status": "logged_out"}

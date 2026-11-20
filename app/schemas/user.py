@@ -73,6 +73,8 @@ class UserUpdate(BaseSchema):
             raise ValueError(messages.MSG_FULL_NAME_CANNOT_BE_NULL)
         if "password" in self.model_fields_set and self.password is None:
             raise ValueError("password cannot be null")
+        if "current_password" in self.model_fields_set and self.current_password is None:
+            raise ValueError("current_password cannot be null")
         if self.password is not None and self.current_password is None:
             raise ValueError(messages.MSG_CURRENT_PASSWORD_REQUIRED)
         if self.password is None and self.current_password is not None:

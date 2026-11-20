@@ -20,8 +20,8 @@ class TaskFilters:
     """Bộ lọc dùng cho danh sách task. None nghĩa là không lọc theo tiêu chí đó."""
 
     assignee_id: UUID | None = None
-    status: TaskStatus | None = None
-    priority: TaskPriority | None = None
+    status: list[TaskStatus] | None = None
+    priority: list[TaskPriority] | None = None
     due_before: datetime | None = None
     due_after: datetime | None = None
     search: str | None = None
@@ -30,10 +30,10 @@ class TaskFilters:
         clauses: list[ColumnElement[bool]] = []
         if self.assignee_id is not None:
             clauses.append(TaskModel.assignee_id == self.assignee_id)
-        if self.status is not None:
-            clauses.append(TaskModel.status == self.status)
-        if self.priority is not None:
-            clauses.append(TaskModel.priority == self.priority)
+        if self.status:
+            clauses.append(TaskModel.status.in_(self.status))
+        if self.priority:
+            clauses.append(TaskModel.priority.in_(self.priority))
         if self.due_before is not None:
             clauses.append(TaskModel.due_date <= self.due_before)
         if self.due_after is not None:

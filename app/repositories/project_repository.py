@@ -23,7 +23,7 @@ class ProjectRepository(SqlAlchemyRepository[Project]):
         result = await self._session.scalars(
             select(Project)
             .where(Project.workspace_id == workspace_id)
-            .order_by(Project.created_at)
+            .order_by(Project.created_at, Project.id)
             .offset(offset)
             .limit(limit)
         )

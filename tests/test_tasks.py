@@ -126,6 +126,9 @@ async def test_create_task_with_assignee(
     project: dict[str, Any],
     other_headers: dict[str, str],
 ) -> None:
+    await invite_member(
+        client, auth_headers, project["workspace_id"], "other@example.com", "VIEWER"
+    )
     other = await client.get("/api/v1/users/me", headers=other_headers)
 
     body = await _create_task(client, auth_headers, project["id"], assignee_id=other.json()["id"])
@@ -287,6 +290,9 @@ async def test_update_task_due_date_and_assignee(
     project: dict[str, Any],
     other_headers: dict[str, str],
 ) -> None:
+    await invite_member(
+        client, auth_headers, project["workspace_id"], "other@example.com", "VIEWER"
+    )
     created = await _create_task(client, auth_headers, project["id"])
     other = await client.get("/api/v1/users/me", headers=other_headers)
 
@@ -324,6 +330,9 @@ async def test_update_task_can_clear_optional_fields(
     project: dict[str, Any],
     other_headers: dict[str, str],
 ) -> None:
+    await invite_member(
+        client, auth_headers, project["workspace_id"], "other@example.com", "VIEWER"
+    )
     other = await client.get("/api/v1/users/me", headers=other_headers)
     created = await _create_task(
         client, auth_headers, project["id"], assignee_id=other.json()["id"]

@@ -39,7 +39,8 @@ class TaskFilters:
         if self.due_after is not None:
             clauses.append(TaskModel.due_date >= self.due_after)
         if self.search:
-            clauses.append(TaskModel.title.ilike(f"%{self.search}%"))
+            escaped = self.search.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+            clauses.append(TaskModel.title.ilike(f"%{escaped}%", escape="\\"))
         return clauses
 
 
@@ -52,7 +53,7 @@ class TaskRepository(SqlAlchemyRepository[TaskModel]):
     ) -> tuple[Sequence[TaskModel], int]:
         total = await self._session.scalar(select(func.count()).select_from(stmt.subquery()))
         result = await self._session.scalars(
-            stmt.order_by(TaskModel.created_at).offset(offset).limit(limit)
+            stmt.order_by(TaskModel.created_at, TaskModel.id).offset(offset).limit(limit)
         )
         return result.all(), total or 0
 

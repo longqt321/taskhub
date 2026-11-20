@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Query, status
+from pydantic import ValidationError
 
 from app.api.deps import (
     CurrentUser,
@@ -67,7 +68,11 @@ async def list_tasks(
         cache_key = build_project_tasks_key(project_id, pagination, filters)
         cached = await cache.get(cache_key)
         if cached is not None:
-            return Page[TaskRead].model_validate_json(cached)
+            try:
+                return Page[TaskRead].model_validate_json(cached)
+            except ValidationError:
+                # payload cache lệch schema sau khi deploy thì bỏ qua, query lại DB
+                pass
 
         tasks, total = await service.list(user, pagination, filters, project_id)
         page = Page[TaskRead].create(

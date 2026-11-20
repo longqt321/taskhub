@@ -31,7 +31,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     redis_client: Redis | None = None
     if settings.redis_url:
-        redis_client = Redis.from_url(settings.redis_url, decode_responses=True)
+        redis_client = Redis.from_url(
+            settings.redis_url,
+            decode_responses=True,
+            socket_connect_timeout=1.0,
+            socket_timeout=1.0,
+        )
         logger.info("Redis client created")
     app.state.redis = redis_client
 

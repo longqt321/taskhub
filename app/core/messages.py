@@ -40,6 +40,16 @@ MSG_OWNER_CANNOT_BE_REMOVED = "Workspace owner cannot be removed or have their r
 MSG_PROJECT_ARCHIVED = "Archived project cannot be modified"
 MSG_ASSIGNEE_NOT_IN_WORKSPACE = "Assignee must be a member of the workspace"
 
+# Label và comment
+MSG_LABEL_NOT_FOUND = "Label not found"
+MSG_LABEL_ALREADY_EXISTS = "Label name already exists in this project"
+MSG_LABEL_NOT_IN_PROJECT = "Label does not belong to the task's project"
+MSG_LABEL_ALREADY_ATTACHED = "Label is already attached to this task"
+MSG_LABEL_NOT_ATTACHED = "Label is not attached to this task"
+MSG_COMMENT_NOT_FOUND = "Comment not found"
+MSG_COMMENT_DELETE_FORBIDDEN = "Only the author or the workspace owner can delete this comment"
+MSG_COMMENT_CANNOT_BE_EMPTY = "content cannot be empty"
+
 # User và auth
 MSG_USER_NOT_FOUND = "User not found"
 MSG_FULL_NAME_CANNOT_BE_NULL = "full_name cannot be null"
@@ -59,6 +69,9 @@ MSG_ADMIN_REQUIRED = "Chỉ admin mới được thực hiện thao tác này"
 MSG_CANNOT_DELETE_SELF = "Không thể xoá hoặc khoá chính tài khoản đang đăng nhập"
 MSG_CANNOT_DEMOTE_SELF = "Không thể tự hạ quyền admin của chính mình"
 MSG_LAST_ADMIN = "Phải còn ít nhất một admin đang hoạt động"
+
+MSG_COLOR_CANNOT_BE_NULL = "color cannot be null"
+MSG_INVALID_DUE_RANGE = "due_after cannot be after due_before"
 
 MSG_INVALID_DATABASE_URL = "database_url phải dùng driver postgresql+asyncpg"
 MSG_INVALID_API_PREFIX = "api_v1_prefix phải bắt đầu bằng '/'"

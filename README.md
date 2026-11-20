@@ -1,6 +1,6 @@
 # TaskHub
 
-API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 4: có workspace, project, phân quyền OWNER/EDITOR/VIEWER theo workspace và task đã gắn với project.
+API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 5: có workspace, project, label, comment, phân quyền OWNER/EDITOR/VIEWER theo workspace, task gắn với project và lọc được theo nhiều tiêu chí.
 
 ## Chạy
 
@@ -85,6 +85,13 @@ Quy ước:
 - Project thuộc workspace. Archive chỉ đổi `status` sang ARCHIVED; xoá project cần OWNER.
 - Task bắt buộc có `project_id`, kèm `assignee_id`, `created_by`, `priority` và `due_date`. `GET /tasks` trả task thuộc các workspace mình là member, hoặc lọc theo `?project_id=...`.
 
+## Label và comment
+
+- Label thuộc một project, tên không trùng trong cùng project (ràng buộc `uq_labels_project_id_name`), màu dạng `#RRGGBB`.
+- Gắn/bỏ label bằng `PUT`/`DELETE /tasks/{task_id}/labels/{label_id}`. Label phải cùng project với task, gắn hai lần trả 409.
+- Comment thuộc một task. Ai đọc được task thì đọc và viết comment được; xoá comment thì tác giả hoặc OWNER workspace, ADMIN đi qua.
+- `GET /tasks` nhận thêm `assignee_id`, `status`, `priority`, `due_before`, `due_after`, `search` (tìm trong tiêu đề). Các điều kiện ghép bằng AND, giá trị enum sai trả 422.
+
 ## API
 
 | Method | Path | Auth |
@@ -120,8 +127,18 @@ Quy ước:
 | GET | `/api/v1/tasks/{id}` | Bearer, member |
 | PATCH | `/api/v1/tasks/{id}` | EDITOR |
 | DELETE | `/api/v1/tasks/{id}` | EDITOR |
+| POST | `/api/v1/projects/{id}/labels` | EDITOR |
+| GET | `/api/v1/projects/{id}/labels` | Bearer, member |
+| PATCH | `/api/v1/labels/{id}` | EDITOR |
+| DELETE | `/api/v1/labels/{id}` | EDITOR |
+| GET | `/api/v1/tasks/{id}/labels` | Bearer, member |
+| PUT | `/api/v1/tasks/{id}/labels/{label_id}` | EDITOR |
+| DELETE | `/api/v1/tasks/{id}/labels/{label_id}` | EDITOR |
+| GET | `/api/v1/tasks/{id}/comments` | Bearer, member |
+| POST | `/api/v1/tasks/{id}/comments` | Bearer, member |
+| DELETE | `/api/v1/tasks/{id}/comments/{comment_id}` | tác giả hoặc OWNER |
 
-Task có `title`, `description`, `status` (TODO / IN_PROGRESS / IN_REVIEW / DONE), `priority` (LOW / MEDIUM / HIGH / URGENT), `project_id`, `assignee_id`, `created_by` và `due_date`.
+Task có `title`, `description`, `status` (TODO / IN_PROGRESS / IN_REVIEW / DONE), `priority` (LOW / MEDIUM / HIGH / URGENT), `project_id`, `assignee_id`, `created_by`, `due_date` và danh sách `labels`.
 
 Lỗi trả về cùng một dạng:
 

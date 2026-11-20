@@ -5,10 +5,11 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, Uuid, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.constants import MAX_TITLE_LENGTH
 from app.models.base import Base, utcnow
+from app.models.label import Label
 
 
 class TaskStatus(enum.StrEnum):
@@ -58,4 +59,8 @@ class TaskModel(Base):
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, server_default=func.now(), onupdate=utcnow
+    )
+
+    labels: Mapped[list[Label]] = relationship(
+        secondary="task_labels", order_by="Label.name", lazy="selectin"
     )

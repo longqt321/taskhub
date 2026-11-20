@@ -5,7 +5,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Query, status
 
-from app.api.deps import CurrentUser, PaginationDep, TaskServiceDep
+from app.api.deps import CurrentUser, PaginationDep, TaskFiltersDep, TaskServiceDep
 from app.api.responses import FORBIDDEN, UNAUTHORIZED, VALIDATION_ERROR, not_found
 from app.core.messages import MSG_TASK_NOT_FOUND
 from app.schemas.common import Page
@@ -34,10 +34,11 @@ async def create_task(payload: TaskCreate, service: TaskServiceDep, user: Curren
 async def list_tasks(
     service: TaskServiceDep,
     pagination: PaginationDep,
+    filters: TaskFiltersDep,
     user: CurrentUser,
     project_id: Annotated[UUID | None, Query(description="Chỉ lấy task của project này")] = None,
 ) -> Page[TaskRead]:
-    tasks, total = await service.list(user, pagination, project_id)
+    tasks, total = await service.list(user, pagination, filters, project_id)
     return Page[TaskRead].create(
         [TaskRead.model_validate(task) for task in tasks],
         total=total,

@@ -12,12 +12,15 @@ from app.core.messages import (
     MSG_NOT_WORKSPACE_MEMBER,
     MSG_PROJECT_ARCHIVED,
     MSG_PROJECT_NOT_FOUND,
+    MSG_TASK_NOT_FOUND,
     MSG_WORKSPACE_NOT_FOUND,
 )
 from app.models.project import Project, ProjectStatus
+from app.models.task import TaskModel
 from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceRole
 from app.repositories.project_repository import ProjectRepository
+from app.repositories.task_repository import TaskRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 
 _ROLE_RANK: dict[WorkspaceRole, int] = {
@@ -76,3 +79,23 @@ async def require_project(
     if not allow_archived and project.status is ProjectStatus.ARCHIVED:
         raise BadRequestError(MSG_PROJECT_ARCHIVED, details={"project_id": str(project_id)})
     return project
+
+
+async def load_task(
+    tasks: TaskRepository,
+    projects: ProjectRepository,
+    workspaces: WorkspaceRepository,
+    task_id: UUID,
+    user: User,
+    minimum: WorkspaceRole,
+    *,
+    allow_archived: bool = True,
+) -> TaskModel:
+    """Lấy task và kiểm tra quyền trên project chứa task đó."""
+    task = await tasks.get(task_id)
+    if task is None:
+        raise NotFoundError(MSG_TASK_NOT_FOUND, details={"task_id": str(task_id)})
+    await require_project(
+        projects, workspaces, task.project_id, user, minimum, allow_archived=allow_archived
+    )
+    return task

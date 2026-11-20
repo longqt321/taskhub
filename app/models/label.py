@@ -1,8 +1,8 @@
-"""Label của project và bảng nối label với task."""
+"""Model label: gắn nhãn cho task trong phạm vi một project."""
 
 from uuid import UUID, uuid4
 
-from sqlalchemy import ForeignKey, String, Uuid
+from sqlalchemy import ForeignKey, String, UniqueConstraint, Uuid
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.constants import MAX_COLOR_LENGTH, MAX_LABEL_LENGTH
@@ -11,6 +11,7 @@ from app.models.base import Base
 
 class Label(Base):
     __tablename__ = "labels"
+    __table_args__ = (UniqueConstraint("project_id", "name", name="uq_labels_project_id_name"),)
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
     project_id: Mapped[UUID] = mapped_column(

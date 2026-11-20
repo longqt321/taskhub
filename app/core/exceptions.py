@@ -23,16 +23,28 @@ class AppError(Exception):
 class BadRequestError(AppError):
     status_code = 400
     code = messages.CODE_BAD_REQUEST
-    default_message = "Bad request"
+    default_message = messages.MSG_DEFAULT_BAD_REQUEST
 
 
 class NotFoundError(AppError):
     status_code = 404
     code = messages.CODE_NOT_FOUND
-    default_message = "Resource not found"
+    default_message = messages.MSG_DEFAULT_NOT_FOUND
 
 
 class ConflictError(AppError):
     status_code = 409
     code = messages.CODE_CONFLICT
-    default_message = "Resource conflict"
+    default_message = messages.MSG_DEFAULT_CONFLICT
+
+
+class UnauthorizedError(AppError):
+    status_code = 401
+    code = messages.CODE_UNAUTHORIZED
+    default_message = messages.MSG_NOT_AUTHENTICATED
+
+
+class ForbiddenError(AppError):
+    status_code = 403
+    code = messages.CODE_FORBIDDEN
+    default_message = messages.MSG_INSUFFICIENT_PERMISSIONS

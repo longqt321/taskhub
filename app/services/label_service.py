@@ -31,7 +31,7 @@ class LabelService:
         projects: ProjectRepository,
         tasks: TaskRepository,
         workspaces: WorkspaceRepository,
-        cache: TaskCache | None = None,
+        cache: TaskCache,
     ) -> None:
         self._labels = labels
         self._projects = projects
@@ -124,8 +124,7 @@ class LabelService:
         return await self._labels.list_for_task(task_id)
 
     async def _invalidate(self, project_id: UUID) -> None:
-        if self._cache is not None:
-            await self._cache.invalidate_project(project_id)
+        await self._cache.invalidate_project(project_id)
 
     async def _get_label(self, label_id: UUID) -> Label:
         label = await self._labels.get(label_id)

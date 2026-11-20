@@ -27,7 +27,7 @@ class TaskService:
         projects: ProjectRepository,
         workspaces: WorkspaceRepository,
         users: UserRepository,
-        cache: TaskCache | None = None,
+        cache: TaskCache,
     ) -> None:
         self._tasks = tasks
         self._projects = projects
@@ -62,8 +62,7 @@ class TaskService:
             labels=[],
         )
         created = await self._tasks.add(task)
-        if self._cache is not None:
-            await self._cache.invalidate_project(created.project_id)
+        await self._cache.invalidate_project(created.project_id)
         if assignee is not None and on_assigned is not None:
             on_assigned(assignee.email, created.title, created.id)
         return created
@@ -128,8 +127,7 @@ class TaskService:
         for field, value in changes.items():
             setattr(task, field, value)
         updated = await self._tasks.update(task)
-        if self._cache is not None:
-            await self._cache.invalidate_project(updated.project_id)
+        await self._cache.invalidate_project(updated.project_id)
         # chỉ gửi khi đổi sang người nhận mới, tránh gửi lặp khi sửa field khác
         if (
             assignee is not None
@@ -150,8 +148,7 @@ class TaskService:
             allow_archived=False,
         )
         await self._tasks.delete(task_id)
-        if self._cache is not None:
-            await self._cache.invalidate_project(task.project_id)
+        await self._cache.invalidate_project(task.project_id)
 
     async def _check_assignee(self, workspace_id: UUID, assignee_id: UUID | None) -> User | None:
         if assignee_id is None:

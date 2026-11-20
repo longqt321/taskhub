@@ -8,36 +8,23 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import messages
-from app.core.constants import DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT
+from app.core.constants import DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT, MIN_LIMIT, MIN_PAGE
 from app.core.database import get_session
 from app.core.exceptions import ForbiddenError, UnauthorizedError
 from app.core.pagination import PaginationParams
 from app.core.security import TokenType, decode_token, subject_from_payload
-from app.models.task import TaskModel
 from app.models.user import User, UserRole
-from app.repositories.base import BaseRepository
-from app.repositories.sqlalchemy_repo import SqlAlchemyRepository
+from app.repositories.project_repository import ProjectRepository
+from app.repositories.task_repository import TaskRepository
 from app.repositories.user_repository import RefreshTokenRepository, UserRepository
+from app.repositories.workspace_repository import WorkspaceRepository
 from app.services.auth_service import AuthService, UserService
+from app.services.project_service import ProjectService
 from app.services.task_service import TaskService
+from app.services.workspace_service import WorkspaceService
 
 # auto_error=False để tự trả error envelope thay vì HTTPException mặc định
 _bearer = HTTPBearer(auto_error=False)
-
-
-def get_task_repository(
-    session: Annotated[AsyncSession, Depends(get_session)],
-) -> BaseRepository[TaskModel]:
-    return SqlAlchemyRepository(session, TaskModel, TaskModel.created_at, TaskModel.id)
-
-
-def get_task_service(
-    repository: Annotated[BaseRepository[TaskModel], Depends(get_task_repository)],
-) -> TaskService:
-    return TaskService(repository)
-
-
-TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 
 
 def get_user_repository(
@@ -50,6 +37,24 @@ def get_refresh_token_repository(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> RefreshTokenRepository:
     return RefreshTokenRepository(session)
+
+
+def get_workspace_repository(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> WorkspaceRepository:
+    return WorkspaceRepository(session)
+
+
+def get_project_repository(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> ProjectRepository:
+    return ProjectRepository(session)
+
+
+def get_task_repository(
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> TaskRepository:
+    return TaskRepository(session)
 
 
 def get_auth_service(
@@ -70,6 +75,38 @@ def get_user_service(
 
 
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
+
+
+def get_workspace_service(
+    workspaces: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
+    users: Annotated[UserRepository, Depends(get_user_repository)],
+) -> WorkspaceService:
+    return WorkspaceService(workspaces, users)
+
+
+WorkspaceServiceDep = Annotated[WorkspaceService, Depends(get_workspace_service)]
+
+
+def get_project_service(
+    projects: Annotated[ProjectRepository, Depends(get_project_repository)],
+    workspaces: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
+) -> ProjectService:
+    return ProjectService(projects, workspaces)
+
+
+ProjectServiceDep = Annotated[ProjectService, Depends(get_project_service)]
+
+
+def get_task_service(
+    tasks: Annotated[TaskRepository, Depends(get_task_repository)],
+    projects: Annotated[ProjectRepository, Depends(get_project_repository)],
+    workspaces: Annotated[WorkspaceRepository, Depends(get_workspace_repository)],
+    users: Annotated[UserRepository, Depends(get_user_repository)],
+) -> TaskService:
+    return TaskService(tasks, projects, workspaces, users)
+
+
+TaskServiceDep = Annotated[TaskService, Depends(get_task_service)]
 
 
 async def get_current_user(
@@ -106,7 +143,7 @@ CurrentAdmin = Annotated[User, Depends(get_current_admin)]
 
 
 class RequireRoles:
-    """Dependency kiểm tra role. ADMIN luôn được đi qua."""
+    """Dependency kiểm tra role hệ thống. ADMIN luôn được đi qua."""
 
     def __init__(self, *roles: UserRole) -> None:
         self.roles = roles
@@ -118,8 +155,10 @@ class RequireRoles:
 
 
 def get_pagination_params(
-    page: Annotated[int, Query(ge=1, description="1-based page number")] = DEFAULT_PAGE,
-    limit: Annotated[int, Query(ge=1, le=MAX_LIMIT, description="Items per page")] = DEFAULT_LIMIT,
+    page: Annotated[int, Query(ge=MIN_PAGE, description="1-based page number")] = DEFAULT_PAGE,
+    limit: Annotated[int, Query(ge=MIN_LIMIT, le=MAX_LIMIT, description="Items per page")] = (
+        DEFAULT_LIMIT
+    ),
 ) -> PaginationParams:
     return PaginationParams(page=page, limit=limit)
 

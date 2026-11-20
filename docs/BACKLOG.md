@@ -2,17 +2,9 @@
 
 Những phần chưa làm, để dành các ngày sau.
 
-## Day 4
-
-- Model domain còn lại: workspaces, workspace_members, projects, labels, task_labels, comments
-- Workspace CRUD (owner only), mời/xoá member, phân quyền OWNER/EDITOR/VIEWER
-- Project CRUD trong workspace, archive project
-- Kiểm tra quyền theo resource ownership, không chỉ theo role hệ thống
-- Thêm `project_id`, `assignee_id`, `created_by`, `priority`, `due_date` cho task
-
 ## Day 5-7
 
-- Task CRUD, assign, đổi status, priority, due_date
+- Lọc task nâng cao theo assignee, status, priority, due_date
 - Label CRUD và gán/bỏ label cho task
 - Comment thêm/xoá trên task
 - Redis cache cho `GET /projects/{id}/tasks`, invalidate khi dữ liệu đổi

@@ -1,14 +1,10 @@
-"""Model SQLAlchemy của resource tasks.
-
-Day 1 dùng dataclass thuần, từ Day 2 chuyển sang TaskModel lưu xuống Postgres.
-Day 4 sẽ thêm project_id, assignee_id, created_by khi có workspace và auth.
-"""
+"""Model SQLAlchemy của resource tasks."""
 
 import enum
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, String, Text, Uuid, func
+from sqlalchemy import DateTime, Enum, ForeignKey, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.constants import MAX_TITLE_LENGTH
@@ -22,22 +18,41 @@ class TaskStatus(enum.StrEnum):
     DONE = "DONE"
 
 
+class TaskPriority(enum.StrEnum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    URGENT = "URGENT"
+
+
 class TaskModel(Base):
     __tablename__ = "tasks"
 
     id: Mapped[UUID] = mapped_column(Uuid, primary_key=True, default=uuid4)
+    project_id: Mapped[UUID] = mapped_column(
+        ForeignKey("projects.id", ondelete="CASCADE"), index=True
+    )
+    assignee_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    created_by: Mapped[UUID] = mapped_column(ForeignKey("users.id"), index=True)
     title: Mapped[str] = mapped_column(String(MAX_TITLE_LENGTH))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[TaskStatus] = mapped_column(
+        Enum(TaskStatus, name="task_status", native_enum=False, length=20, create_constraint=True),
+        default=TaskStatus.TODO,
+    )
+    priority: Mapped[TaskPriority] = mapped_column(
         Enum(
-            TaskStatus,
-            name="task_status",
+            TaskPriority,
+            name="task_priority",
             native_enum=False,
             length=20,
             create_constraint=True,
         ),
-        default=TaskStatus.TODO,
+        default=TaskPriority.MEDIUM,
     )
+    due_date: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, server_default=func.now()
     )

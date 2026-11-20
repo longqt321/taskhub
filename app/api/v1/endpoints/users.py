@@ -74,7 +74,7 @@ async def get_user(user_id: UUID, _: CurrentAdmin, service: UserServiceDep) -> U
 
 @router.patch(
     "/{user_id}",
-    summary="Update a user (change name, role, active state)",
+    summary="Update a user (change name or role, lock or unlock the account)",
     responses={
         **UNAUTHORIZED,
         **forbidden(messages.MSG_ADMIN_REQUIRED),

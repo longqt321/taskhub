@@ -3,7 +3,7 @@
 from fastapi import APIRouter, status
 
 from app.api.deps import AuthServiceDep
-from app.api.responses import UNAUTHORIZED, VALIDATION_ERROR, conflict
+from app.api.responses import VALIDATION_ERROR, conflict, unauthorized
 from app.core import messages
 from app.schemas.user import LoginRequest, RefreshRequest, TokenResponse, UserCreate, UserRead
 
@@ -23,7 +23,7 @@ async def register(payload: UserCreate, service: AuthServiceDep) -> UserRead:
 @router.post(
     "/login",
     summary="Login with email and password",
-    responses={**UNAUTHORIZED, **VALIDATION_ERROR},
+    responses={**unauthorized("Incorrect email or password"), **VALIDATION_ERROR},
 )
 async def login(payload: LoginRequest, service: AuthServiceDep) -> TokenResponse:
     access, refresh = await service.login(payload)
@@ -33,7 +33,7 @@ async def login(payload: LoginRequest, service: AuthServiceDep) -> TokenResponse
 @router.post(
     "/refresh",
     summary="Exchange a refresh token for a new token pair",
-    responses={**UNAUTHORIZED, **VALIDATION_ERROR},
+    responses={**unauthorized("Invalid refresh token"), **VALIDATION_ERROR},
 )
 async def refresh(payload: RefreshRequest, service: AuthServiceDep) -> TokenResponse:
     access, refresh = await service.refresh(payload.refresh_token)
@@ -44,7 +44,7 @@ async def refresh(payload: RefreshRequest, service: AuthServiceDep) -> TokenResp
     "/logout",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Revoke a refresh token",
-    responses=UNAUTHORIZED,
+    responses=unauthorized("Invalid refresh token"),
 )
 async def logout(payload: RefreshRequest, service: AuthServiceDep) -> None:
     await service.logout(payload.refresh_token)

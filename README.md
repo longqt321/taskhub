@@ -1,6 +1,6 @@
 # TaskHub
 
-API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 3: có Postgres, SQLAlchemy async, Alembic, đăng ký/đăng nhập bằng JWT, refresh token xoay vòng và phân quyền theo role.
+API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 4: có workspace, project, phân quyền OWNER/EDITOR/VIEWER theo workspace và task đã gắn với project.
 
 ## Chạy
 
@@ -73,9 +73,17 @@ Quy ước:
 - Đổi mật khẩu hoặc bị admin khoá tài khoản thì toàn bộ refresh token cũ mất giá trị.
 - Token có claim `type` (access/refresh), `jti`, `iat`; decode kiểm tra `type` nên refresh token không dùng được như access token. `sub` hỏng trả 401, không để 500.
 - `get_current_user` là chỗ duy nhất đọc Bearer token, kiểm tra user còn tồn tại và `is_active`. 401 luôn kèm header `WWW-Authenticate: Bearer`.
-- `RequireRoles(...)` kiểm tra role; ADMIN luôn được đi qua. Thiếu quyền trả 403.
+- `RequireRoles(...)` kiểm tra role hệ thống; ADMIN luôn được đi qua. Thiếu quyền trả 403.
 - Mật khẩu giới hạn 8 ký tự tối thiểu và 72 **byte** tối đa (giới hạn của bcrypt), không phải 72 ký tự.
 - Sửa/xoá user là thao tác của ADMIN: không tự xoá hay tự khoá chính mình, và luôn phải còn ít nhất một admin đang hoạt động.
+
+## Workspace và project
+
+- Tạo workspace thì người tạo tự động là OWNER, ghi vào `workspace_members` trong cùng transaction.
+- Role trong workspace: OWNER sửa/xoá workspace và mời member, EDITOR tạo/sửa project và task, VIEWER chỉ đọc.
+- `app/services/access.py` là nơi kiểm tra quyền. ADMIN hệ thống được qua mọi bước, user thường phải là member workspace.
+- Project thuộc workspace. Archive chỉ đổi `status` sang ARCHIVED; xoá project cần OWNER.
+- Task bắt buộc có `project_id`, kèm `assignee_id`, `created_by`, `priority` và `due_date`. `GET /tasks` trả task thuộc các workspace mình là member, hoặc lọc theo `?project_id=...`.
 
 ## API
 
@@ -92,13 +100,28 @@ Quy ước:
 | GET | `/api/v1/users/{id}` | Bearer + ADMIN |
 | PATCH | `/api/v1/users/{id}` | Bearer + ADMIN |
 | DELETE | `/api/v1/users/{id}` | Bearer + ADMIN |
-| POST | `/api/v1/tasks` | Bearer |
-| GET | `/api/v1/tasks?page=1&limit=20` | Bearer |
-| GET | `/api/v1/tasks/{id}` | Bearer |
-| PATCH | `/api/v1/tasks/{id}` | Bearer |
-| DELETE | `/api/v1/tasks/{id}` | Bearer |
+| POST | `/api/v1/workspaces` | Bearer |
+| GET | `/api/v1/workspaces` | Bearer |
+| GET | `/api/v1/workspaces/{id}` | Bearer, member |
+| PATCH | `/api/v1/workspaces/{id}` | OWNER |
+| DELETE | `/api/v1/workspaces/{id}` | OWNER |
+| GET | `/api/v1/workspaces/{id}/members` | Bearer, member |
+| POST | `/api/v1/workspaces/{id}/members` | OWNER |
+| PATCH | `/api/v1/workspaces/{id}/members/{user_id}` | OWNER |
+| DELETE | `/api/v1/workspaces/{id}/members/{user_id}` | OWNER |
+| POST | `/api/v1/workspaces/{id}/projects` | EDITOR |
+| GET | `/api/v1/workspaces/{id}/projects` | Bearer, member |
+| GET | `/api/v1/projects/{id}` | Bearer, member |
+| PATCH | `/api/v1/projects/{id}` | EDITOR |
+| POST | `/api/v1/projects/{id}/archive` | EDITOR |
+| DELETE | `/api/v1/projects/{id}` | OWNER |
+| POST | `/api/v1/tasks` | EDITOR |
+| GET | `/api/v1/tasks?project_id=...` | Bearer, member |
+| GET | `/api/v1/tasks/{id}` | Bearer, member |
+| PATCH | `/api/v1/tasks/{id}` | EDITOR |
+| DELETE | `/api/v1/tasks/{id}` | EDITOR |
 
-Task có `title`, `description`, `status` (TODO / IN_PROGRESS / IN_REVIEW / DONE). `project_id`, `assignee_id`, `created_by` sẽ thêm ở Day 4 khi có workspace.
+Task có `title`, `description`, `status` (TODO / IN_PROGRESS / IN_REVIEW / DONE), `priority` (LOW / MEDIUM / HIGH / URGENT), `project_id`, `assignee_id`, `created_by` và `due_date`.
 
 Lỗi trả về cùng một dạng:
 

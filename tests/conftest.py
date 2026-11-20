@@ -3,20 +3,23 @@
 import os
 
 # Phải set trước khi import app để Settings đọc đúng
-os.environ["DATABASE_URL"] = "postgresql+asyncpg://taskhub:taskhub@localhost:5433/taskhub_test"
-os.environ["SECRET_KEY"] = "test-secret-key-must-be-at-least-32-bytes"
+os.environ.setdefault(
+    "DATABASE_URL", "postgresql+asyncpg://taskhub:taskhub@localhost:5433/taskhub_test"
+)
+os.environ.setdefault("SECRET_KEY", "test-secret-key-must-be-at-least-32-bytes")
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from typing import Any
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy import update
+from sqlalchemy import text, update
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.database import create_engine, create_session_factory
 from app.main import app
-from app.models import Base
 from app.models.user import User, UserRole
 
 TEST_URL = os.environ["DATABASE_URL"]
@@ -28,15 +31,27 @@ USER_PAYLOAD = {
 }
 
 
+_ALEMBIC_CFG = Config("alembic.ini")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _apply_migrations() -> Iterator[None]:
+    command.downgrade(_ALEMBIC_CFG, "base")
+    command.upgrade(_ALEMBIC_CFG, "head")
+    try:
+        yield
+    finally:
+        command.downgrade(_ALEMBIC_CFG, "base")
+
+
 @pytest.fixture
 async def engine() -> AsyncIterator[AsyncEngine]:
-    # echo=False để log test khỏi bị đầy bởi SQL
     test_engine = create_engine(TEST_URL, echo=False)
     async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+        await conn.execute(
+            text("TRUNCATE TABLE refresh_tokens, users, tasks RESTART IDENTITY CASCADE")
+        )
     yield test_engine
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
     await test_engine.dispose()
 
 

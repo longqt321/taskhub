@@ -8,7 +8,7 @@ import enum
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import DateTime, Enum, String, Text, Uuid
+from sqlalchemy import DateTime, Enum, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.constants import MAX_TITLE_LENGTH
@@ -29,10 +29,18 @@ class TaskModel(Base):
     title: Mapped[str] = mapped_column(String(MAX_TITLE_LENGTH))
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus, name="task_status", native_enum=False, length=20),
+        Enum(
+            TaskStatus,
+            name="task_status",
+            native_enum=False,
+            length=20,
+            create_constraint=True,
+        ),
         default=TaskStatus.TODO,
     )
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utcnow, server_default=func.now()
+    )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), default=utcnow, onupdate=utcnow
+        DateTime(timezone=True), default=utcnow, server_default=func.now(), onupdate=utcnow
     )

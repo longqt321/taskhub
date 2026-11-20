@@ -28,7 +28,7 @@ _bearer = HTTPBearer(auto_error=False)
 def get_task_repository(
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> BaseRepository[TaskModel]:
-    return SqlAlchemyRepository(session, TaskModel, TaskModel.created_at)
+    return SqlAlchemyRepository(session, TaskModel, TaskModel.created_at, TaskModel.id)
 
 
 def get_task_service(

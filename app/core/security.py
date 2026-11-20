@@ -1,5 +1,6 @@
 """Băm mật khẩu và tạo/giải mã JWT."""
 
+import asyncio
 import enum
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -28,6 +29,18 @@ def hash_password(password: str) -> str:
 
 def verify_password(password: str, hashed: str) -> bool:
     return password_hash.verify(password, hashed)
+
+
+DUMMY_HASH = hash_password("dummy-password-for-timing")
+
+
+async def hash_password_async(password: str) -> str:
+    """Chạy argon2 trên thread pool để không block event loop."""
+    return await asyncio.to_thread(hash_password, password)
+
+
+async def verify_password_async(password: str, hashed: str) -> bool:
+    return await asyncio.to_thread(verify_password, password, hashed)
 
 
 def _encode(

@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import EmailStr, Field, field_validator, model_validator
+from pydantic import ConfigDict, EmailStr, Field, field_validator, model_validator
 
 from app.core import messages
 from app.core.constants import MAX_NAME_LENGTH, MAX_PASSWORD_BYTES, MIN_PASSWORD_LENGTH
@@ -19,9 +19,22 @@ def _check_password_bytes(value: str) -> str:
 
 
 class UserCreate(BaseSchema):
+    # Không strip khoảng trắng trong password, chỉ strip full_name và chuẩn hoá email
+    model_config = ConfigDict(str_strip_whitespace=False, from_attributes=True)
+
     email: EmailStr
     full_name: str = Field(min_length=1, max_length=MAX_NAME_LENGTH)
     password: str = Field(min_length=MIN_PASSWORD_LENGTH, max_length=MAX_PASSWORD_BYTES)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: str) -> str:
+        return value.strip().lower() if isinstance(value, str) else value
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def _strip_full_name(cls, value: str) -> str:
+        return value.strip() if isinstance(value, str) else value
 
     _password_bytes = field_validator("password")(_check_password_bytes)
 
@@ -36,10 +49,17 @@ class UserRead(BaseSchema):
 
 
 class UserUpdate(BaseSchema):
+    model_config = ConfigDict(str_strip_whitespace=False, from_attributes=True)
+
     full_name: str | None = Field(default=None, min_length=1, max_length=MAX_NAME_LENGTH)
     password: str | None = Field(default=None, min_length=MIN_PASSWORD_LENGTH)
     # bắt buộc khi đổi password, để tự mình xác nhận lại
     current_password: str | None = Field(default=None, max_length=MAX_PASSWORD_BYTES)
+
+    @field_validator("full_name", mode="before")
+    @classmethod
+    def _strip_full_name(cls, value: str | None) -> str | None:
+        return value.strip() if isinstance(value, str) else value
 
     @field_validator("password")
     @classmethod
@@ -48,9 +68,11 @@ class UserUpdate(BaseSchema):
 
     @model_validator(mode="after")
     def _check_password_change(self) -> UserUpdate:
-        # full_name là NOT NULL, gửi null là lỗi client chứ không phải ý xoá
+        # full_name và password là NOT NULL, gửi null là lỗi client chứ không phải ý xoá
         if "full_name" in self.model_fields_set and self.full_name is None:
             raise ValueError(messages.MSG_FULL_NAME_CANNOT_BE_NULL)
+        if "password" in self.model_fields_set and self.password is None:
+            raise ValueError("password cannot be null")
         if self.password is not None and self.current_password is None:
             raise ValueError(messages.MSG_CURRENT_PASSWORD_REQUIRED)
         if self.password is None and self.current_password is not None:
@@ -74,8 +96,15 @@ class UserAdminUpdate(BaseSchema):
 
 
 class LoginRequest(BaseSchema):
+    model_config = ConfigDict(str_strip_whitespace=False, from_attributes=True)
+
     email: EmailStr
     password: str = Field(min_length=1, max_length=MAX_PASSWORD_BYTES)
+
+    @field_validator("email", mode="before")
+    @classmethod
+    def _normalize_email(cls, value: str) -> str:
+        return value.strip().lower() if isinstance(value, str) else value
 
     _password_bytes = field_validator("password")(_check_password_bytes)
 

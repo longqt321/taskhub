@@ -304,3 +304,11 @@ async def test_change_password_longer_than_72_bytes_is_rejected(
 
     # 40 ký tự nhưng 80 byte, vượt giới hạn bcrypt
     assert response.status_code == 422
+
+
+async def test_update_me_rejects_null_password(
+    client: AsyncClient, auth_headers: dict[str, str]
+) -> None:
+    response = await client.patch(ME_URL, headers=auth_headers, json={"password": None})
+
+    assert response.status_code == 422

@@ -173,7 +173,7 @@ async def test_attach_label_to_task(
     assert [item["name"] for item in detail.json()["labels"]] == ["bug"]
 
 
-async def test_attach_label_twice_conflicts(
+async def test_attach_label_twice_is_idempotent(
     client: AsyncClient, auth_headers: dict[str, str], project: dict[str, Any]
 ) -> None:
     label = await _create_label(client, auth_headers, project["id"])
@@ -183,7 +183,8 @@ async def test_attach_label_twice_conflicts(
 
     response = await client.put(url, headers=auth_headers)
 
-    assert response.status_code == 409
+    assert response.status_code == 200
+    assert [item["name"] for item in response.json()] == ["bug"]
 
 
 async def test_attach_label_from_other_project_is_rejected(

@@ -6,15 +6,16 @@ với role tối thiểu tương ứng mới được làm việc trên project 
 
 from uuid import UUID
 
-from app.core.exceptions import ForbiddenError, NotFoundError
+from app.core.exceptions import BadRequestError, ForbiddenError, NotFoundError
 from app.core.messages import (
     MSG_INSUFFICIENT_ROLE,
     MSG_NOT_WORKSPACE_MEMBER,
+    MSG_PROJECT_ARCHIVED,
     MSG_PROJECT_NOT_FOUND,
     MSG_TASK_NOT_FOUND,
     MSG_WORKSPACE_NOT_FOUND,
 )
-from app.models.project import Project
+from app.models.project import Project, ProjectStatus
 from app.models.task import TaskModel
 from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceRole
@@ -67,12 +68,16 @@ async def require_project(
     project_id: UUID,
     user: User,
     minimum: WorkspaceRole,
+    *,
+    allow_archived: bool = True,
 ) -> Project:
     """Lấy project và kiểm tra quyền của user trên workspace chứa nó."""
     project = await projects.get(project_id)
     if project is None:
         raise NotFoundError(MSG_PROJECT_NOT_FOUND, details={"project_id": str(project_id)})
     await require_workspace(workspaces, project.workspace_id, user, minimum)
+    if not allow_archived and project.status is ProjectStatus.ARCHIVED:
+        raise BadRequestError(MSG_PROJECT_ARCHIVED, details={"project_id": str(project_id)})
     return project
 
 
@@ -83,10 +88,14 @@ async def load_task(
     task_id: UUID,
     user: User,
     minimum: WorkspaceRole,
+    *,
+    allow_archived: bool = True,
 ) -> TaskModel:
     """Lấy task và kiểm tra quyền trên project chứa task đó."""
     task = await tasks.get(task_id)
     if task is None:
         raise NotFoundError(MSG_TASK_NOT_FOUND, details={"task_id": str(task_id)})
-    await require_project(projects, workspaces, task.project_id, user, minimum)
+    await require_project(
+        projects, workspaces, task.project_id, user, minimum, allow_archived=allow_archived
+    )
     return task

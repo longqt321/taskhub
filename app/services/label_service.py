@@ -3,9 +3,10 @@
 from collections.abc import Sequence
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.core.exceptions import BadRequestError, ConflictError, NotFoundError
 from app.core.messages import (
-    MSG_LABEL_ALREADY_ATTACHED,
     MSG_LABEL_ALREADY_EXISTS,
     MSG_LABEL_NOT_ATTACHED,
     MSG_LABEL_NOT_FOUND,
@@ -37,13 +38,20 @@ class LabelService:
 
     async def create(self, user: User, project_id: UUID, data: LabelCreate) -> Label:
         await require_project(
-            self._projects, self._workspaces, project_id, user, WorkspaceRole.EDITOR
+            self._projects,
+            self._workspaces,
+            project_id,
+            user,
+            WorkspaceRole.EDITOR,
+            allow_archived=False,
         )
-        if await self._labels.get_by_name(project_id, data.name) is not None:
-            raise ConflictError(MSG_LABEL_ALREADY_EXISTS, details={"name": data.name})
-        return await self._labels.add(
-            Label(project_id=project_id, name=data.name, color=data.color)
-        )
+        try:
+            return await self._labels.add(
+                Label(project_id=project_id, name=data.name, color=data.color)
+            )
+        except IntegrityError as exc:
+            await self._labels.rollback()
+            raise ConflictError(MSG_LABEL_ALREADY_EXISTS, details={"name": data.name}) from exc
 
     async def list(self, user: User, project_id: UUID) -> Sequence[Label]:
         await require_project(
@@ -83,14 +91,19 @@ class LabelService:
 
     async def attach(self, user: User, task_id: UUID, label_id: UUID) -> Sequence[Label]:
         task = await load_task(
-            self._tasks, self._projects, self._workspaces, task_id, user, WorkspaceRole.EDITOR
+            self._tasks,
+            self._projects,
+            self._workspaces,
+            task_id,
+            user,
+            WorkspaceRole.EDITOR,
+            allow_archived=False,
         )
         label = await self._get_label(label_id)
         if label.project_id != task.project_id:
             raise BadRequestError(MSG_LABEL_NOT_IN_PROJECT, details={"label_id": str(label_id)})
-        if await self._labels.is_attached(task_id, label_id):
-            raise ConflictError(MSG_LABEL_ALREADY_ATTACHED, details={"label_id": str(label_id)})
-        await self._labels.attach(task_id, label_id)
+        if not await self._labels.is_attached(task_id, label_id):
+            await self._labels.attach(task_id, label_id)
         return await self._labels.list_for_task(task_id)
 
     async def detach(self, user: User, task_id: UUID, label_id: UUID) -> Sequence[Label]:

@@ -20,7 +20,7 @@ class CommentRepository(SqlAlchemyRepository[Comment]):
             select(Comment)
             .where(Comment.task_id == task_id)
             .options(joinedload(Comment.author))
-            .order_by(Comment.created_at)
+            .order_by(Comment.created_at, Comment.id)
         )
         return result.unique().all()
 

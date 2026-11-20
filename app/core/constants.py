@@ -19,3 +19,9 @@ MAX_PASSWORD_BYTES = 72
 
 # HS256 cần khoá đủ dài, ngắn hơn thì coi như cấu hình sai
 MIN_SECRET_KEY_BYTES = 32
+
+DEFAULT_LABEL_COLOR = "#6B7280"
+LABEL_COLOR_PATTERN = r"^#[0-9a-fA-F]{6}$"
+MAX_SEARCH_LENGTH = 100
+
+DATABASE_SCHEME = "postgresql+asyncpg://"

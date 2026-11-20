@@ -10,9 +10,16 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import messages
-from app.core.constants import DEFAULT_LIMIT, DEFAULT_PAGE, MAX_LIMIT, MIN_LIMIT, MIN_PAGE
+from app.core.constants import (
+    DEFAULT_LIMIT,
+    DEFAULT_PAGE,
+    MAX_LIMIT,
+    MAX_SEARCH_LENGTH,
+    MIN_LIMIT,
+    MIN_PAGE,
+)
 from app.core.database import get_session
-from app.core.exceptions import ForbiddenError, UnauthorizedError
+from app.core.exceptions import BadRequestError, ForbiddenError, UnauthorizedError
 from app.core.pagination import PaginationParams
 from app.core.security import TokenType, decode_token, subject_from_payload
 from app.models.task import TaskPriority, TaskStatus
@@ -199,12 +206,16 @@ class RequireRoles:
 
 def get_task_filters(
     assignee_id: Annotated[UUID | None, Query(description="Lọc theo người được giao")] = None,
-    status: Annotated[TaskStatus | None, Query(description="Lọc theo trạng thái")] = None,
-    priority: Annotated[TaskPriority | None, Query(description="Lọc theo độ ưu tiên")] = None,
+    status: Annotated[list[TaskStatus] | None, Query(description="Lọc theo trạng thái")] = None,
+    priority: Annotated[list[TaskPriority] | None, Query(description="Lọc theo độ ưu tiên")] = None,
     due_before: Annotated[datetime | None, Query(description="Hạn chót trước mốc này")] = None,
     due_after: Annotated[datetime | None, Query(description="Hạn chót sau mốc này")] = None,
-    search: Annotated[str | None, Query(max_length=100, description="Tìm trong tiêu đề")] = None,
+    search: Annotated[
+        str | None, Query(max_length=MAX_SEARCH_LENGTH, description="Tìm trong tiêu đề")
+    ] = None,
 ) -> TaskFilters:
+    if due_after is not None and due_before is not None and due_after > due_before:
+        raise BadRequestError(messages.MSG_INVALID_DUE_RANGE)
     return TaskFilters(
         assignee_id=assignee_id,
         status=status,

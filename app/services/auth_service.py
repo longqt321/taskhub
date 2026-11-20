@@ -149,10 +149,11 @@ class UserService:
         deactivating = changes.get("is_active") is False
         losing_admin = changes.get("role") not in (None, UserRole.ADMIN)
 
-        if target.id == actor.id and deactivating:
-            raise BadRequestError(messages.MSG_CANNOT_DELETE_SELF)
-        if target.id == actor.id and losing_admin:
-            raise BadRequestError(messages.MSG_CANNOT_DELETE_SELF)
+        if target.id == actor.id and (deactivating or losing_admin):
+            msg = (
+                messages.MSG_CANNOT_DEMOTE_SELF if losing_admin else messages.MSG_CANNOT_DELETE_SELF
+            )
+            raise BadRequestError(msg)
         if target.role == UserRole.ADMIN and (deactivating or losing_admin):
             await self._ensure_another_admin()
 

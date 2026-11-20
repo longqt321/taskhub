@@ -1,6 +1,6 @@
 # TaskHub
 
-API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 6: thêm Redis cache cho danh sách task theo project và background task gửi thông báo khi assign task.
+API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 7: hoàn thiện tài liệu Swagger/OpenAPI (Bearer auth, tags) và đóng gói Docker multi-stage chạy cả stack.
 
 ## Chạy
 
@@ -91,6 +91,14 @@ Quy ước:
 - Gắn/bỏ label bằng `PUT`/`DELETE /tasks/{task_id}/labels/{label_id}`. Label phải cùng project với task, gắn hai lần trả 409.
 - Comment thuộc một task. Ai đọc được task thì đọc và viết comment được; xoá comment thì tác giả hoặc OWNER workspace, ADMIN đi qua.
 - `GET /tasks` nhận thêm `assignee_id`, `status`, `priority`, `due_before`, `due_after`, `search` (tìm trong tiêu đề). Các điều kiện ghép bằng AND, giá trị enum sai trả 422.
+
+## Docker chạy cả stack
+
+```bash
+docker compose up --build -d
+```
+
+Service `api` tự chạy `alembic upgrade head` rồi khởi động `uvicorn` trên port `8000`. Tài liệu Swagger ở `/docs` (bật `persistAuthorization` để giữ Bearer token khi tải lại trang).
 
 ## Cache và background task
 

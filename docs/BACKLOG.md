@@ -2,6 +2,11 @@
 
 Những phần chưa làm, để dành các ngày sau.
 
+## Day 7-8
+
+- Swagger mô tả Bearer auth và error response đầy đủ
+- Dockerfile multi-stage, docker compose chạy cả stack
+
 ## Sau này
 
 - GitHub Actions chạy ruff + mypy + pytest

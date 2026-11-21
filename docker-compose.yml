@@ -28,26 +28,5 @@ services:
       timeout: 3s
       retries: 10
 
-  api:
-    build: .
-    container_name: taskhub-api
-    ports:
-      - "8000:8000"
-    environment:
-      DATABASE_URL: postgresql+asyncpg://taskhub:taskhub@db:5432/taskhub
-      REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-change-me-32bytes}
-      ENVIRONMENT: local
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health')"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-
 volumes:
   taskhub_pgdata:

@@ -23,6 +23,7 @@ _OPENAPI_TAGS = [
 def create_app() -> FastAPI:
     settings = get_settings()
     configure_logging(settings.log_level)
+    is_prod = settings.environment == "production"
 
     app = FastAPI(
         title=settings.app_name,
@@ -34,9 +35,9 @@ def create_app() -> FastAPI:
         openapi_tags=_OPENAPI_TAGS,
         swagger_ui_parameters={"persistAuthorization": True},
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        docs_url=None if is_prod else "/docs",
+        redoc_url=None if is_prod else "/redoc",
+        openapi_url=None if is_prod else "/openapi.json",
     )
     register_exception_handlers(app)
     app.include_router(api_router, prefix=settings.api_v1_prefix)

@@ -95,10 +95,10 @@ Quy ước:
 ## Docker chạy cả stack
 
 ```bash
-docker compose up --build -d
+SECRET_KEY=change-me-to-a-random-32-byte-secret docker compose up --build -d
 ```
 
-Service `api` tự chạy `alembic upgrade head` rồi khởi động `uvicorn` trên port `8000`. Tài liệu Swagger ở `/docs` (bật `persistAuthorization` để giữ Bearer token khi tải lại trang).
+Service `migrate` chạy `alembic upgrade head` trước khi `api` khởi động trên port `8000`. Tài liệu Swagger ở `/docs` (bật `persistAuthorization` để giữ Bearer token khi tải lại trang, tự động tắt khi `ENVIRONMENT=production`).
 
 ## Cache và background task
 

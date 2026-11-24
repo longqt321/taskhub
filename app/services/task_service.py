@@ -15,7 +15,7 @@ from app.repositories.task_repository import TaskFilters, TaskRepository
 from app.repositories.user_repository import UserRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.schemas.task import TaskCreate, TaskUpdate
-from app.services.access import load_task, require_project
+from app.services.access import load_task, load_task_with_project, require_project
 
 AssignCallback = Callable[[str, str, UUID], None]
 
@@ -108,7 +108,7 @@ class TaskService:
         data: TaskUpdate,
         on_assigned: AssignCallback | None = None,
     ) -> TaskModel:
-        task = await load_task(
+        task, project = await load_task_with_project(
             self._tasks,
             self._projects,
             self._workspaces,
@@ -121,9 +121,7 @@ class TaskService:
         previous_assignee = task.assignee_id
         assignee: User | None = None
         if "assignee_id" in changes:
-            project = await self._projects.get(task.project_id)
-            if project is not None:
-                assignee = await self._check_assignee(project.workspace_id, changes["assignee_id"])
+            assignee = await self._check_assignee(project.workspace_id, changes["assignee_id"])
         for field, value in changes.items():
             setattr(task, field, value)
         updated = await self._tasks.update(task)

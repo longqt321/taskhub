@@ -3,7 +3,7 @@
 from collections.abc import Sequence
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -13,7 +13,7 @@ from app.repositories.sqlalchemy_repo import SqlAlchemyRepository
 
 class WorkspaceRepository(SqlAlchemyRepository[Workspace]):
     def __init__(self, session: AsyncSession) -> None:
-        super().__init__(session, Workspace, Workspace.created_at)
+        super().__init__(session, Workspace, Workspace.created_at, Workspace.id)
 
     async def create_with_owner(self, name: str, owner_id: UUID) -> Workspace:
         """Tạo workspace và gắn owner trong cùng một transaction."""
@@ -23,7 +23,7 @@ class WorkspaceRepository(SqlAlchemyRepository[Workspace]):
         self._session.add(
             WorkspaceMember(workspace_id=workspace.id, user_id=owner_id, role=WorkspaceRole.OWNER)
         )
-        await self._session.commit()
+        await self._session.flush()
         await self._session.refresh(workspace)
         return workspace
 
@@ -32,17 +32,8 @@ class WorkspaceRepository(SqlAlchemyRepository[Workspace]):
     ) -> tuple[Sequence[Workspace], int]:
         """Chỉ trả về workspace mà user là thành viên."""
         membership = select(WorkspaceMember.workspace_id).where(WorkspaceMember.user_id == user_id)
-        total = await self._session.scalar(
-            select(func.count()).select_from(Workspace).where(Workspace.id.in_(membership))
-        )
-        result = await self._session.scalars(
-            select(Workspace)
-            .where(Workspace.id.in_(membership))
-            .order_by(Workspace.created_at, Workspace.id)
-            .offset(offset)
-            .limit(limit)
-        )
-        return result.all(), total or 0
+        stmt = select(Workspace).where(Workspace.id.in_(membership))
+        return await self._paginate(stmt, offset=offset, limit=limit)
 
     async def get_member(self, workspace_id: UUID, user_id: UUID) -> WorkspaceMember | None:
         result = await self._session.scalars(
@@ -66,13 +57,13 @@ class WorkspaceRepository(SqlAlchemyRepository[Workspace]):
 
     async def add_member(self, member: WorkspaceMember) -> WorkspaceMember:
         self._session.add(member)
-        await self._session.commit()
+        await self._session.flush()
         return member
 
     async def update_member_role(self, member: WorkspaceMember, role: WorkspaceRole) -> None:
         member.role = role
-        await self._session.commit()
+        await self._session.flush()
 
     async def remove_member(self, member: WorkspaceMember) -> None:
         await self._session.delete(member)
-        await self._session.commit()
+        await self._session.flush()

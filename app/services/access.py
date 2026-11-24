@@ -81,6 +81,26 @@ async def require_project(
     return project
 
 
+async def load_task_with_project(
+    tasks: TaskRepository,
+    projects: ProjectRepository,
+    workspaces: WorkspaceRepository,
+    task_id: UUID,
+    user: User,
+    minimum: WorkspaceRole,
+    *,
+    allow_archived: bool = True,
+) -> tuple[TaskModel, Project]:
+    """Lấy task kèm project đã kiểm tra quyền, tránh truy vấn lặp lại."""
+    task = await tasks.get(task_id)
+    if task is None:
+        raise NotFoundError(MSG_TASK_NOT_FOUND, details={"task_id": str(task_id)})
+    project = await require_project(
+        projects, workspaces, task.project_id, user, minimum, allow_archived=allow_archived
+    )
+    return task, project
+
+
 async def load_task(
     tasks: TaskRepository,
     projects: ProjectRepository,
@@ -92,10 +112,7 @@ async def load_task(
     allow_archived: bool = True,
 ) -> TaskModel:
     """Lấy task và kiểm tra quyền trên project chứa task đó."""
-    task = await tasks.get(task_id)
-    if task is None:
-        raise NotFoundError(MSG_TASK_NOT_FOUND, details={"task_id": str(task_id)})
-    await require_project(
-        projects, workspaces, task.project_id, user, minimum, allow_archived=allow_archived
+    task, _ = await load_task_with_project(
+        tasks, projects, workspaces, task_id, user, minimum, allow_archived=allow_archived
     )
     return task

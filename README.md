@@ -1,6 +1,6 @@
 # TaskHub
 
-API quản lý công việc viết bằng FastAPI, làm dần qua 8 ngày học. Hiện xong Day 7: hoàn thiện tài liệu Swagger/OpenAPI (Bearer auth, tags) và đóng gói Docker multi-stage chạy cả stack.
+API quản lý công việc viết bằng FastAPI (PostgreSQL, Redis, Alembic, JWT, RBAC), hoàn thiện qua 8 ngày từ khởi tạo đến review và đóng gói Docker.
 
 ## Chạy
 
@@ -17,6 +17,26 @@ uv run uvicorn app.main:app --reload
 Swagger ở http://127.0.0.1:8000/docs, ReDoc ở http://127.0.0.1:8000/redoc.
 
 Port 5433 vì 5432 trên máy đã có Postgres khác chạy. Đổi được trong `docker-compose.yml` và `DATABASE_URL`.
+
+## Biến môi trường
+
+Xem mẫu tại [.env.example](.env.example). Các biến chính:
+
+| Biến | Bắt buộc | Mặc định | Mô tả |
+| --- | --- | --- | --- |
+| `DATABASE_URL` | có | - | Chuỗi kết nối Postgres (`postgresql+asyncpg://...`) |
+| `SECRET_KEY` | có | - | Khoá ký JWT (tối thiểu 32 bytes) |
+| `ENVIRONMENT` | không | `local` | `local` / `staging` / `production` (tắt Swagger khi `production`) |
+| `DEBUG` | không | `false` | Bật/tắt chế độ debug |
+| `LOG_LEVEL` | không | `INFO` | Mức log (`DEBUG`, `INFO`, `WARNING`, `ERROR`) |
+| `API_V1_PREFIX` | không | `/api/v1` | Prefix của toàn bộ API v1 |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | không | `30` | Thời hạn access token (phút) |
+| `REFRESH_TOKEN_EXPIRE_DAYS` | không | `7` | Thời hạn refresh token (ngày) |
+| `REDIS_URL` | không | - | URL Redis cache (`redis://localhost:6379/0`); bỏ trống nếu không dùng cache |
+| `CACHE_TTL_SECONDS` | không | `60` | TTL cache danh sách task (giây) |
+| `POSTGRES_USER` | không | `taskhub` | User Postgres dùng trong `docker-compose.yml` |
+| `POSTGRES_PASSWORD` | không | `taskhub` | Mật khẩu Postgres dùng trong `docker-compose.yml` |
+| `POSTGRES_DB` | không | `taskhub` | Tên database Postgres dùng trong `docker-compose.yml` |
 
 ## Migration
 

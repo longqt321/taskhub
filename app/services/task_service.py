@@ -83,11 +83,14 @@ class TaskService:
         pagination: PaginationParams,
         filters: TaskFilters,
         project_id: UUID | None = None,
+        *,
+        authorize: bool = True,
     ) -> tuple[Sequence[TaskModel], int]:
         if project_id is not None:
-            await require_project(
-                self._projects, self._workspaces, project_id, user, WorkspaceRole.VIEWER
-            )
+            if authorize:
+                await require_project(
+                    self._projects, self._workspaces, project_id, user, WorkspaceRole.VIEWER
+                )
             return await self._tasks.list_in_project(
                 project_id, filters=filters, offset=pagination.offset, limit=pagination.limit
             )

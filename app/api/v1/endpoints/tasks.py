@@ -62,6 +62,7 @@ async def list_tasks(
     user: CurrentUser,
     project_id: Annotated[UUID | None, Query(description="Chỉ lấy task của project này")] = None,
 ) -> Page[TaskRead]:
+    cache_key: str | None = None
     if project_id is not None:
         # kiểm tra quyền trước khi đọc cache, tránh user ngoài lấy được dữ liệu đã cache
         await service.ensure_can_read_project(user, project_id)
@@ -75,23 +76,18 @@ async def list_tasks(
                 # payload cache lệch schema sau khi deploy thì bỏ qua, query lại DB
                 pass
 
-        tasks, total = await service.list(user, pagination, filters, project_id)
-        page = Page[TaskRead].create(
-            [TaskRead.model_validate(task) for task in tasks],
-            total=total,
-            page=pagination.page,
-            limit=pagination.limit,
-        )
-        await cache.set(cache_key, page.model_dump_json(), project_id)
-        return page
-
-    tasks, total = await service.list(user, pagination, filters, None)
-    return Page[TaskRead].create(
+    tasks, total = await service.list(
+        user, pagination, filters, project_id, authorize=project_id is None
+    )
+    page = Page[TaskRead].create(
         [TaskRead.model_validate(task) for task in tasks],
         total=total,
         page=pagination.page,
         limit=pagination.limit,
     )
+    if project_id is not None and cache_key is not None:
+        await cache.set(cache_key, page.model_dump_json(), project_id)
+    return page
 
 
 @router.get(

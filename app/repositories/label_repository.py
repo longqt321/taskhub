@@ -45,10 +45,10 @@ class LabelRepository(SqlAlchemyRepository[Label]):
 
     async def attach(self, task_id: UUID, label_id: UUID) -> None:
         self._session.add(TaskLabel(task_id=task_id, label_id=label_id))
-        await self._session.commit()
+        await self._session.flush()
 
     async def detach(self, task_id: UUID, label_id: UUID) -> None:
         await self._session.execute(
             delete(TaskLabel).where(TaskLabel.task_id == task_id, TaskLabel.label_id == label_id)
         )
-        await self._session.commit()
+        await self._session.flush()

@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import ColumnElement, Select, func, select
+from sqlalchemy import ColumnElement, Select, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.project import Project
@@ -46,22 +46,13 @@ class TaskFilters:
 
 class TaskRepository(SqlAlchemyRepository[TaskModel]):
     def __init__(self, session: AsyncSession) -> None:
-        super().__init__(session, TaskModel, TaskModel.created_at)
-
-    async def _page(
-        self, stmt: Select[Any], *, offset: int, limit: int
-    ) -> tuple[Sequence[TaskModel], int]:
-        total = await self._session.scalar(select(func.count()).select_from(stmt.subquery()))
-        result = await self._session.scalars(
-            stmt.order_by(TaskModel.created_at, TaskModel.id).offset(offset).limit(limit)
-        )
-        return result.all(), total or 0
+        super().__init__(session, TaskModel, TaskModel.created_at, TaskModel.id)
 
     async def list_in_project(
         self, project_id: UUID, *, filters: TaskFilters, offset: int, limit: int
     ) -> tuple[Sequence[TaskModel], int]:
         stmt = select(TaskModel).where(TaskModel.project_id == project_id, *filters.conditions())
-        return await self._page(stmt, offset=offset, limit=limit)
+        return await self._paginate(stmt, offset=offset, limit=limit)
 
     def _member_projects(self, user_id: UUID) -> Select[Any]:
         return (
@@ -77,10 +68,10 @@ class TaskRepository(SqlAlchemyRepository[TaskModel]):
         stmt = select(TaskModel).where(
             TaskModel.project_id.in_(self._member_projects(user_id)), *filters.conditions()
         )
-        return await self._page(stmt, offset=offset, limit=limit)
+        return await self._paginate(stmt, offset=offset, limit=limit)
 
     async def list_all(
         self, *, filters: TaskFilters, offset: int, limit: int
     ) -> tuple[Sequence[TaskModel], int]:
         stmt = select(TaskModel).where(*filters.conditions())
-        return await self._page(stmt, offset=offset, limit=limit)
+        return await self._paginate(stmt, offset=offset, limit=limit)

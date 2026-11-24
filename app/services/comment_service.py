@@ -13,7 +13,7 @@ from app.repositories.project_repository import ProjectRepository
 from app.repositories.task_repository import TaskRepository
 from app.repositories.workspace_repository import WorkspaceRepository
 from app.schemas.comment import CommentCreate
-from app.services.access import load_task
+from app.services.access import load_task, load_task_with_project
 
 
 class CommentService:
@@ -46,25 +46,19 @@ class CommentService:
         return created
 
     async def delete(self, user: User, task_id: UUID, comment_id: UUID) -> None:
-        await load_task(
+        _, project = await load_task_with_project(
             self._tasks, self._projects, self._workspaces, task_id, user, WorkspaceRole.VIEWER
         )
         comment = await self._comments.get(comment_id)
         if comment is None or comment.task_id != task_id:
             raise NotFoundError(MSG_COMMENT_NOT_FOUND, details={"comment_id": str(comment_id)})
-        if not await self._can_delete(user, comment):
+        if not await self._can_delete(user, comment, project.workspace_id):
             raise ForbiddenError(MSG_COMMENT_DELETE_FORBIDDEN)
         await self._comments.delete(comment_id)
 
-    async def _can_delete(self, user: User, comment: Comment) -> bool:
+    async def _can_delete(self, user: User, comment: Comment, workspace_id: UUID) -> bool:
         """Tác giả xoá comment của mình, OWNER workspace xoá được mọi comment, ADMIN đi qua."""
         if user.role is UserRole.ADMIN or comment.author_id == user.id:
             return True
-        task = await self._tasks.get(comment.task_id)
-        if task is None:  # pragma: no cover - comment luôn thuộc task còn tồn tại
-            return False
-        project = await self._projects.get(task.project_id)
-        if project is None:  # pragma: no cover
-            return False
-        member = await self._workspaces.get_member(project.workspace_id, user.id)
+        member = await self._workspaces.get_member(workspace_id, user.id)
         return member is not None and member.role is WorkspaceRole.OWNER

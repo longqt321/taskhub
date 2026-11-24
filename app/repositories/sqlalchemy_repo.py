@@ -1,10 +1,10 @@
 """Repository SQLAlchemy, cài đặt BaseRepository bằng async session."""
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 from uuid import UUID
 
-from sqlalchemy import func, select
+from sqlalchemy import Select, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
 
@@ -27,13 +27,24 @@ class SqlAlchemyRepository[T](BaseRepository[T]):
     async def get(self, entity_id: UUID) -> T | None:
         return await self._session.get(self._model, entity_id)
 
-    async def list(self, *, offset: int, limit: int) -> tuple[Sequence[T], int]:
-        total = await self._session.scalar(select(func.count()).select_from(self._model))
-        stmt = select(self._model)
-        if self._order_by:
-            stmt = stmt.order_by(*self._order_by)
+    async def _paginate(
+        self,
+        stmt: Select[Any],
+        *,
+        offset: int,
+        limit: int,
+        order_by: Sequence[Any] | None = None,
+    ) -> tuple[Sequence[T], int]:
+        """Đếm tổng bản ghi và lấy một trang dữ liệu theo stmt."""
+        total = await self._session.scalar(select(func.count()).select_from(stmt.subquery()))
+        clauses = order_by if order_by is not None else self._order_by
+        if clauses:
+            stmt = stmt.order_by(*clauses)
         result = await self._session.scalars(stmt.offset(offset).limit(limit))
-        return result.all(), total or 0
+        return cast(Sequence[T], result.all()), total or 0
+
+    async def list(self, *, offset: int, limit: int) -> tuple[Sequence[T], int]:
+        return await self._paginate(select(self._model), offset=offset, limit=limit)
 
     async def add(self, entity: T) -> T:
         self._session.add(entity)
